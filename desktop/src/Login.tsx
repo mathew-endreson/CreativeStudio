@@ -47,14 +47,14 @@ export default function Login({ version }: { version: string }) {
         } catch (x) {
           if (errorCode(x) !== "email_not_confirmed") throw x;
           await resendSignup(mail);
-          go("confirm", "Your email is not confirmed yet: we sent you a new code.");
+          go("confirm", "Your email is not confirmed yet: we sent you a new email. Enter its code here, or open its link and then sign in.");
         }
       } else if (mode === "new") {
-        if ((await createAccount(mail, pw)) === "confirm") go("confirm", `We sent a code to ${mail}.`);
+        if ((await createAccount(mail, pw)) === "confirm") go("confirm", `We sent an email to ${mail}. Enter its code here; if it holds a link instead, open the link, then sign in.`);
       } else if (mode === "confirm") await confirmSignup(mail, code.trim());
       else if (mode === "reset") {
         await sendResetCode(mail);
-        go("code", `We sent a code to ${mail}.`);
+        go("code", `We sent an email to ${mail}. Enter its code here. If it only holds a link, ask support to reset the password.`);
       } else await resetWithCode(mail, code.trim(), pw);
     });
   };
@@ -63,7 +63,7 @@ export default function Login({ version }: { version: string }) {
     run(async () => {
       if (mode === "confirm") await resendSignup(email.trim());
       else await sendResetCode(email.trim());
-      setNote("A new code is on its way.");
+      setNote("A new email is on its way.");
     });
 
   const title = { in: "Sign in", new: "Create the account", confirm: "Confirm the email", reset: "Send a reset code", code: "Set the new password" }[mode];
@@ -123,7 +123,7 @@ export default function Login({ version }: { version: string }) {
               <button className="hover:text-ink" onClick={() => go("in")}>Back to sign in</button>
               {needsCode && (
                 <button className="hover:text-ink disabled:opacity-50" disabled={busy} onClick={resend}>
-                  Send the code again
+                  Send the email again
                 </button>
               )}
             </>

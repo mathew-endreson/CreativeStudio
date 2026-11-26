@@ -35,8 +35,25 @@ def whisper_cached():
     return d.is_dir() and any(d.rglob("model.bin"))
 
 
+def hf_cache():
+    """HyperFrames' own cache (its Chrome, the cutout runtime and model, fonts)."""
+    return Path(os.environ.get("HYPERFRAMES_CACHE_DIR") or (Path.home() / ".cache" / "hyperframes"))
+
+
 def matte_model():
-    return Path.home() / ".cache" / "hyperframes" / "background-removal" / "models" / "u2net_human_seg.onnx"
+    return hf_cache() / "background-removal" / "models" / "u2net_human_seg.onnx"
+
+
+def chrome_cached():
+    """The headless Chrome HyperFrames renders with (`hyperframes browser ensure` downloads it, about 270 MB)."""
+    d = hf_cache() / "chrome"
+    return d.is_dir() and (any(d.rglob("chrome-headless-shell.exe")) or any(d.rglob("chrome.exe")))
+
+
+def cutout_runtime_cached():
+    """onnxruntime-node, which HyperFrames installs on the first cutout (about 210 MB)."""
+    d = hf_cache() / "optional"
+    return d.is_dir() and any(p.name.startswith("onnxruntime-node") for p in d.iterdir())
 
 
 def python_ok():
@@ -69,6 +86,10 @@ def check():
         "cached" if whisper_cached() else "downloaded by Setup, or on the first transcription", required=False, fix="setup")
     add("matte", "Speaker matte model (u2net)", matte_model().exists(),
         str(matte_model()) if matte_model().exists() else "HyperFrames downloads it on the first cutout", required=False, fix="setup")
+    add("chrome", "Chrome for rendering (HyperFrames)", chrome_cached(),
+        "cached" if chrome_cached() else "downloaded by Setup (about 270 MB), or on the first render", required=False, fix="setup")
+    add("cutout", "Cutout runtime (onnxruntime for HyperFrames)", cutout_runtime_cached(),
+        "installed" if cutout_runtime_cached() else "installed by Setup (about 210 MB), or on the first cutout", required=False, fix="setup")
     runner = settings.runner()
     if runner == "sdk":
         key, cli = bool(settings.api_key()), config.bundled_claude()
@@ -77,7 +98,12 @@ def check():
     else:
         add("claude", "Claude Code CLI (your login)", config.claude_bin(),
             config.claude_bin() or "not found: install Claude Code and run `claude` once, or switch to the API key runner")
-    add("gpt", "GPT asset tool (ChatGPT / Codex app)", (config.GPT_DIR / "library.json").exists(), str(config.GPT_DIR), required=False)
+    lib_ok = (config.GPT_DIR / "library.json").exists()
+    add("gpt", "Illustration library (the orange health pictures)", lib_ok,
+        str(config.GPT_DIR) if lib_ok else "no library: ads get the jar and the discs only", required=False, fix="setup")
+    codex = config.codex_bin()
+    add("codex", "GPT drawing tool (the ChatGPT / Codex desktop app)", codex,
+        codex or "not installed: new pictures are not drawn, the library is used as it is", required=False)
     add("workspace", "Workspace", config.ROOT.is_dir() and os.access(config.ROOT, os.W_OK), str(config.ROOT))
     free = shutil.disk_usage(config.ROOT).free // 2 ** 30 if config.ROOT.exists() else 0
     add("disk", "Free disk space", free >= 10, f"{free} GB free (cutouts and renders need room)", required=False)
@@ -112,6 +138,15 @@ def init_workspace():
                     shutil.rmtree(dst)
                 shutil.copytree(skill_src, dst)
                 stamp.write_text(config.VERSION, encoding="utf-8")
+    # the illustration library, when this PC has no GPT asset tool of its own (replaced on every new app version)
+    lib_src, lib_dst = res / "assets", config.ROOT / "assets"
+    if config.GPT_DIR == lib_dst and (lib_src / "library.json").exists():
+        stamp = lib_dst / ".bluxtech-version"
+        if not lib_dst.exists() or not stamp.exists() or stamp.read_text(encoding="utf-8").strip() != config.VERSION:
+            if lib_dst.exists():
+                shutil.rmtree(lib_dst)
+            shutil.copytree(lib_src, lib_dst)
+            stamp.write_text(config.VERSION, encoding="utf-8")
     hf_src = res / "hyperframes"
     nm = config.HF / "node_modules"
     src = hf_src / "node_modules"
@@ -125,6 +160,24 @@ def init_workspace():
     for name in ("hyperframes.json", "package.json"):
         if (hf_src / name).exists() and not (config.HF / name).exists():
             shutil.copy2(hf_src / name, config.HF / name)
+    link_root_node_modules()
+
+
+def link_root_node_modules():
+    """`npx hyperframes ...` (what the skill and Claude's commands run from the workspace root) must resolve to the
+    bundled HyperFrames in _hyperframes/node_modules: npx looks for node_modules/.bin next to the current folder and
+    otherwise fetches the latest version from the registry. A junction <root>/node_modules -> _hyperframes/node_modules
+    makes it find ours, offline, at the tested version. Both modes."""
+    root_nm, nm = config.ROOT / "node_modules", config.HF / "node_modules"
+    if not (nm / "hyperframes").is_dir():
+        return
+    if root_nm.is_junction() or root_nm.is_symlink():
+        if root_nm.exists() and os.path.realpath(root_nm) == os.path.realpath(nm):
+            return
+        root_nm.rmdir()                                  # stale: points elsewhere or at a folder that is gone
+    elif root_nm.exists():
+        return                                           # the user's own node_modules: leave it alone
+    _junction(root_nm, nm)
 
 
 def setup_job(ctx, job, spec):
@@ -159,5 +212,27 @@ def setup_job(ctx, job, spec):
             ctx.log("sys", f"matte model copied to {m}")
         else:
             ctx.log("sys", "no bundled matte model: HyperFrames downloads it on the first cutout")
+    node, hf = which("node"), hyperframes_cli()
+    if node and hf and not chrome_cached():
+        ctx.log("sys", "downloading the Chrome HyperFrames renders with (about 270 MB, once)")
+        code = ctx.spawn([node, str(hf), "browser", "ensure"], cwd=config.HF)
+        if code != 0:
+            raise JobFailed("the Chrome download failed: check the connection and run Setup again")
+        done["chrome"] = True
+    if node and hf and not cutout_runtime_cached():
+        # HyperFrames installs onnxruntime-node the first time it cuts something out: a 64 px picture does it here
+        ctx.log("sys", "installing the cutout runtime (onnxruntime for HyperFrames, about 210 MB, once)")
+        work = config.DATA / "setup"
+        work.mkdir(parents=True, exist_ok=True)
+        tiny = work / "tiny.png"
+        code = ctx.spawn([config.skill_python(), "-c",
+                          "from PIL import Image, ImageDraw; im = Image.new('RGB', (64, 64), 'white'); "
+                          "ImageDraw.Draw(im).ellipse((16, 8, 48, 56), fill=(120, 20, 20)); "
+                          f"im.save(r'{tiny}')"])
+        if code == 0:
+            code = ctx.spawn([node, str(hf), "remove-background", str(tiny), "-o", str(work / "tiny_cut.png")], cwd=config.HF)
+        if code != 0 or not cutout_runtime_cached():
+            raise JobFailed("installing the cutout runtime failed: check the connection and run Setup again")
+        done["cutout"] = True
     ctx.log("sys", "setup finished: " + (", ".join(done) if done else "nothing was missing"))
     return {"installed": list(done), "check": check()}

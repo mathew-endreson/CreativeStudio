@@ -71,19 +71,24 @@ activates, re-checks and frees devices and signs the RS256 token the engine veri
 
 1. Create a Supabase project (supabase.com/dashboard). In **Authentication → Sign In / Providers → Email**, keep Email
    enabled and **Confirm email** on.
-2. **Authentication → Emails → Templates**: the app asks for a code, not a link, so put `{{ .Token }}` in
-   **Confirm signup** and **Reset password** (for example `Your BluxTech Studio code: <b>{{ .Token }}</b>`). For real
-   customers set up custom SMTP (**Authentication → Emails → SMTP Settings**): the built-in sender only allows a few
-   emails an hour.
-3. From `bluxtech-studio/` (the CLI runs with `npx`, no global install):
+2. Emails: the app asks for a code, not a link (a desktop app cannot receive a link's redirect), so the
+   **Confirm signup** and **Reset password** templates must contain `{{ .Token }}` (`supabase/templates/*.html`,
+   subjects in `supabase/config.toml`). The deploy script below applies them, **but a free-tier project on Supabase's
+   default email provider refuses template changes**: then the sign-up email carries a link, which still confirms
+   the account once opened (the user then signs in), while password reset from the app needs a code and does not work
+   until a custom SMTP provider is set (**Project Settings → Authentication → SMTP**; also lifts the built-in sender's
+   few-emails-an-hour limit). Set SMTP, run the script again, done.
+3. From `bluxtech-studio/` (the CLI runs with `npx`, no global install; on a PowerShell with scripts disabled use
+   `npx.cmd`), sign in once, then deploy everything with one script. It needs no database password: the schema goes
+   through the Management API, the CLI does the secret and the function.
    ```
    npx supabase login
-   npx supabase link --project-ref <your-ref>
-   npx supabase db push                                   # tables, row-level security, SQL functions
-   npx supabase secrets set --env-file supabase/keys/secrets.env
-   npx supabase functions deploy license --no-verify-jwt
+   .\installer\deploy_supabase.ps1 -ProjectRef <your-ref>
    ```
-   Optional secrets: `TRIAL_DAYS` (7), `TRIAL_DEVICES` (1), `LICENSE_TOKEN_DAYS` (14).
+   (Manually: `npx supabase link --project-ref <ref>`, `npx supabase db push`, `npx supabase secrets set --env-file
+   supabase/keys/secrets.env`, `npx supabase functions deploy license --no-verify-jwt`; the CLI asks `--yes` for each
+   hosted change when it does not run in a terminal.) Optional secrets: `TRIAL_DAYS` (7), `TRIAL_DEVICES` (1),
+   `LICENSE_TOKEN_DAYS` (14).
 4. Signing keys: `supabase/keys/license_private.pem` (never commit it, keep a backup) and its public half
    `desktop/license_public_key.pem`; `supabase/keys/secrets.env` holds the private key in base64 for step 3. To make a
    new pair: `openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out supabase/keys/license_private.pem`,
@@ -97,9 +102,14 @@ activates, re-checks and frees devices and signs the RS256 token the engine veri
    with `SUPABASE_URL` and `SUPABASE_SECRET_KEY` set. The customer signs up in the app first; a new account gets a
    trial on its first activation.
 
-Flow in the app: sign up (code from the email) or sign in → `license` `activate` (registers the device within the plan's
-limit, returns status, plan, expiry and the token) → the engine stores it and works offline for 7 days → ads can be
-produced. Settings → **Free this device** releases the slot (`deactivate`).
+Flow in the app: sign up (code or link from the email) or sign in → `license` `activate` (registers the device within
+the plan's limit, returns status, plan, expiry and the token) → the engine stores it and works offline for 7 days →
+ads can be produced. Settings → **Free this device** releases the slot (`deactivate`). The engine verifies the token
+with 5 minutes of clock leeway, so a PC whose clock runs a little behind is not locked out.
+
+Verified on 2026-11-26 against a live project: trial on first activation, signed token accepted by the engine's
+verifier, second device refused on a 1-device trial, re-check, deactivation, and row-level security (own license
+readable, not writable, invisible to anonymous callers).
 
 ## Build the installer
 
@@ -121,6 +131,20 @@ matte model; about 1.6 GB, see ARCHITECTURE.md) and runs `tauri build`. The resu
 from it the way the shell does: `resources\python\python.exe -m bluxtech_engine --resources <resources> --workspace <tmp> --data <tmp> --port 8799 --no-auth`
 from `resources\engine`, then open `http://127.0.0.1:8799/`.
 
+### Build it in GitHub Actions instead
+
+`.github/workflows/installer.yml` builds the same installer on a GitHub-hosted Windows runner (Node, Python, Rust
+and MSVC are preinstalled there; the runtime downloads are cached between runs). Two ways to start it:
+
+- **Actions → installer → Run workflow**: the installer is kept as a workflow artifact for 90 days.
+- **Push a tag** such as `v0.1.0`: the build runs and attaches the installer to a GitHub release of that tag.
+
+The repo must hold what the build PC otherwise provides: `assets-library/` (the illustration library, copied from
+the GPT asset tool's folder; refresh it when pictures are added), `installer/vcredist/` (the VC++ runtime DLLs),
+`desktop/supabase.config.json` and `desktop/license_public_key.pem` (public values). A CI build has no matte model,
+so the installed app's Setup screen fetches it with its first cutout warm-up (170 MB) instead of shipping it. A run
+takes about 40 minutes, most of it the NSIS compression; the installer is about 530 MB.
+
 First run on a customer PC: sign in, activate, then the **Setup** screen checks the machine and downloads what is
 left (the Whisper model, about 1.6 GB; HyperFrames fetches its Chrome on the first render). The workspace is
 `Documents\BluxTech Studio` (`_hyperframes/` projects, the skill copy); settings, license and the job log are in
@@ -131,12 +155,45 @@ Run the installer from Explorer or a normal terminal. A process started from ins
 package) gets that package's redirected AppData, so an install launched from there lands in
 `AppData\Local\Packages\Claude_…\LocalCache\Local\` and is invisible to the shortcuts it creates.
 
+## Install on another PC (customers)
+
+What the PC needs: Windows 10 or 11, 64-bit, about 6 GB free, internet for the first run, and 8 GB of RAM or more
+(the cutout holds about 1.5 GB). Nothing else: the installer carries Python, Node, HyperFrames, FFmpeg, the Visual
+C++ runtime, the skills, the illustration library and the license key.
+
+1. Send `BluxTech Studio_0.1.0_x64-setup.exe` (about 530 MB). It is not code-signed yet, so Windows SmartScreen
+   shows "Windows protected your PC" the first time: **More info → Run anyway**. (A code-signing certificate removes
+   that screen; see below.) The install is per user, no administrator rights, under `%LOCALAPPDATA%\BluxTech Studio`,
+   with a Desktop and a Start Menu shortcut. If the Edge WebView2 runtime is missing the installer downloads it.
+2. First start: sign up (the email carries a link, open it, then sign in) or sign in, then **Activate**. A new account
+   gets a trial; sales grant the real license (Licensing above).
+3. The **Set up this PC** screen then lists what is missing and **Run setup** fetches it once: the Whisper model
+   (1.6 GB), the Chrome that HyperFrames renders with (270 MB) and the cutout runtime (210 MB). The matte model and
+   the illustration library ship with the installer and are laid into the workspace automatically.
+4. The editing steps run on Claude through an Anthropic API key: the Setup screen asks for it (or Settings → Claude
+   later). The key is sealed to the Windows user with DPAPI. Without a key the app opens but no edit can start.
+5. Work lands in `Documents\BluxTech Studio` (projects, cutouts, renders; the finished ads in each project's own Ads
+   folder); settings, license and the job log in `%LOCALAPPDATA%\com.bluxtech.studio\engine`. Uninstalling from
+   Apps & Features leaves both in place.
+
+Known limits on a customer PC: no ChatGPT / Codex drawing tool, so the ads use the shipped library as it is (new
+pictures are not drawn; the drawing cap is forced to 0); the illustration library is the copy made at build time
+(`installer/build_runtime.ps1` takes it from the build PC's GPT asset folder), so rebuild the installer after adding
+pictures. Code signing: a certificate (an OV/EV certificate, or Azure Trusted Signing) and `bundle.windows.certificateThumbprint`
+or `signCommand` in `tauri.conf.json` make the installer and the exe signed, which is what removes the SmartScreen
+screen for customers.
+
 ## What is not done yet
 
-- The installer (`BluxTech Studio_0.1.0_x64-setup.exe`, about 530 MB) has been built and installed on the
-  development PC (silent install, shortcuts, uninstall entry, app launched from the installed copy: engine spawned,
-  window opened, engine stopped with the window). It has not yet been tried on a clean PC without Node, Python or a
-  Whisper cache, where the Setup screen has to download the Whisper model.
+- The installer has been built and installed on the development PC, and each first-run piece a clean PC needs was
+  exercised separately on 2026-11-26: the Visual C++ runtime beside the embedded Python (static import scan of all
+  310 native modules, then real imports), the Whisper download into an empty cache (1.5 GB), HyperFrames' Chrome
+  download and its cutout-runtime install into an empty cache, and the illustration-library fallback without the
+  GPT tool. What is still missing is one run of the installer on a truly clean Windows machine (Windows Sandbox is
+  not enabled on the build PC); the first customer install is that test.
+- A fresh edit ran end to end from the app on 2026-11-26 (Footage 03: 31 s, 14 captions, 12 beats, −15.2 LUFS, 13
+  minutes, about $3.50 of Claude usage with the `cli` runner). The remix stages (`graphics`, `fix`, `revise`) are
+  wired the same way but have not been run from the app yet.
 - Google / social sign-in (needs a deep-link flow); email + password only.
 - Auto-update; a web account page for customers to manage their devices (the `license` function's `deactivate` action
   and the `license_devices` table exist).

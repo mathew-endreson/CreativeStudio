@@ -4,8 +4,6 @@ dist/
 __pycache__/
 *.pyc
 engine/tests/.data/
-desktop/supabase.config.json
-desktop/license_public_key.pem
 desktop/src-tauri/target/
 desktop/src-tauri/resources/*
 !desktop/src-tauri/resources/README.txt

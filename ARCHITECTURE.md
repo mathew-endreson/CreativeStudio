@@ -98,15 +98,26 @@ the timeline → **fresh** (Claude: SKILL.md steps 3–10, including the render)
 ```
 <install dir>\resources\
   python\        embedded CPython 3.12 + pip + the engine's and the skill's packages (also runs the skill's scripts
-                 and Claude's own `python ...` commands: it is first on PATH for every child process)
+                 and Claude's own `python ...` commands: it is first on PATH for every child process), with the
+                 Visual C++ 2022 runtime DLLs beside python.exe (installer\vcredist: onnxruntime, ctranslate2 and
+                 OpenCV import msvcp140*.dll, which a clean PC does not have)
   node\          portable Node.js 22            hyperframes\node_modules   HyperFrames 0.9.38
   ffmpeg\bin\    ffmpeg.exe, ffprobe.exe        models\                    u2net_human_seg.onnx (optional)
   engine\        bluxtech_engine + prompts      skill\camel-gpt, skill\darijadz   the skills (copied into the workspace)
+  assets\        the illustration library (library.json, generated\, style\), copied into the workspace as
+                 <workspace>\assets on a PC without the GPT asset tool; the skill reads it through GPT_ASSETS_PROJECT
+                 and CAMEL_GPT_LIBRARY, which the engine sets for every child process
   ui\            the built UI                   supabase.config.json, license_public_key.pem
 ```
 
 About 1.6 GB staged, of which the Claude Code runtime bundled in the Agent SDK is 385 MB, the embedded Python with
-its packages about 600 MB, FFmpeg 210 MB, the matte model 170 MB, Node 90 MB and HyperFrames 105 MB.
+its packages about 600 MB, FFmpeg 210 MB, the matte model 170 MB, Node 90 MB, HyperFrames 105 MB and the library 40 MB.
+
+What the first run still fetches, through the Setup screen's job (all verified from an empty cache): the Whisper
+model (1.5 GB, `faster_whisper.download_model`, about 2.5 min on a fast line), HyperFrames' Chrome
+(`hyperframes browser ensure`, 270 MB) and the cutout runtime, which HyperFrames installs the first time it cuts
+something out (210 MB; Setup cuts out a 64 px picture to trigger it). The matte model is copied from `models\`.
+Without the Codex drawing tool the engine forces the drawing cap to 0 and the prompts skip the fill step.
 
 The embeddable Python ships a `python312._pth`, which puts it in isolated mode: nothing from another Python on the
 customer's PC leaks in, but a normal Python's first `sys.path` entry (the script's folder, or the current folder for

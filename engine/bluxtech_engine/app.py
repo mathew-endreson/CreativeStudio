@@ -69,6 +69,15 @@ def ping():
     return {"ok": True, "app": config.APP_NAME, "version": config.VERSION}
 
 
+def effective_gpt_cap(n):
+    """How many new pictures a Claude run may have drawn: the setting, or 0 on a PC without the Codex drawing tool."""
+    try:
+        n = int(n or 0)
+    except (TypeError, ValueError):
+        n = 0
+    return n if config.codex_bin() else 0
+
+
 @app.get("/api/app")
 def app_info():
     hf = config.HF / "node_modules" / "hyperframes" / "bin" / "hyperframes.mjs"
@@ -355,7 +364,7 @@ def build(slug: str, body: dict = Body(...)):
     if frames:
         ch.add("heavy", "cut", f"Cut out the speaker for {len(mids)} mix{'es' if len(mids) > 1 else ''}", batch_cmd("cut", d, *mids), work=frames)
     ch.add("claude", "graphics", f"Plan the graphics of {len(mids)} mix{'es' if len(mids) > 1 else ''} with Claude",
-           {"type": "claude", "stage": "graphics", "args": {"ids": mids, "gpt_cap": int(body.get("gpt_cap") or P.get("gpt_cap", settings.get("gpt_cap")))}},
+           {"type": "claude", "stage": "graphics", "args": {"ids": mids, "gpt_cap": effective_gpt_cap(body.get("gpt_cap") or P.get("gpt_cap", settings.get("gpt_cap")))}},
            work=len(mids))
     ch.add("light", "build", f"Build {' '.join(mids)}", batch_cmd("build", d, *mids))
     ch.add("light", "check", f"Lint and snapshot {' '.join(mids)}", batch_cmd("check", d, *mids))
@@ -498,7 +507,7 @@ def run_fresh(slug: str, body: dict = Body(default={})):
         fix = jobs.add(slug, "claude", "darija", f"Correct the Darija of {f.get('name') or slug} with Claude", FRESH_DARIJA, work=1)
     dep = dep or fix                                        # the cutout takes far longer than the correction
     jid = jobs.add(slug, "claude", "fresh", f"Edit {f.get('name') or slug} with Claude",
-                   {"type": "claude", "stage": "fresh", "args": {"gpt_cap": int(body.get("gpt_cap") or settings.get("gpt_cap"))}},
+                   {"type": "claude", "stage": "fresh", "args": {"gpt_cap": effective_gpt_cap(body.get("gpt_cap") or settings.get("gpt_cap"))}},
                    depends_on=dep, work=1)
     return {"jobs": [public(jobs.get(jid))]}
 

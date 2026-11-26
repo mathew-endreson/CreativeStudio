@@ -25,7 +25,7 @@ SYSTEM = ("You are running headless inside BluxTech Studio, a desktop app that d
           "Run one command per shell call, starting with python, ffmpeg, ffprobe or npx hyperframes: no pipes, no "
           "cd, no variable assignments (PYTHONIOENCODING is already utf-8). Paths with spaces go in double quotes. "
           "Never delete, rename or overwrite source footage, existing _hyperframes projects, finished ads, or "
-          "anything in Documents\\ChatGPT\\asstets tool ebox.")
+          "the illustration library (the folder asset_lib.py reports as its library).")
 
 
 def one_line(s, n=400):

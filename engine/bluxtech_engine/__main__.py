@@ -33,6 +33,7 @@ def main():
     config.init(workspace=a.workspace, resources=a.resources, port=a.port, auth=not a.no_auth, data=a.data)
     from . import environment
     environment.init_workspace()
+    environment.link_root_node_modules()     # both modes: npx hyperframes resolves to the bundled version
     if config.PORT == 0:
         config.PORT = free_port()
     from . import security

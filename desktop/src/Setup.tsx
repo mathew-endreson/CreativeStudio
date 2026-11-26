@@ -25,6 +25,22 @@ export default function Setup({ onDone, embedded }: { onDone?: () => void; embed
       .then((r) => setJob(r.jobs[0]))
       .catch((e) => setErr(errText(e)));
 
+  // the API-key runner with no key yet: the one thing on this screen a download cannot fix
+  const [key, setKey] = useState("");
+  const [keyBusy, setKeyBusy] = useState(false);
+  const needsKey = !!env && env.runner === "sdk" && env.items.some((i) => i.id === "claude" && !i.ok);
+  const saveKey = () => {
+    setKeyBusy(true);
+    api
+      .setApiKey(key.trim())
+      .then(() => {
+        setKey("");
+        load();
+      })
+      .catch((e) => setErr(errText(e)))
+      .finally(() => setKeyBusy(false));
+  };
+
   return (
     <div className={embedded ? "" : "mx-auto min-h-full max-w-[900px] bg-bg p-6"}>
       {!embedded && <PageHeader icon="gear" title="Set up this PC" sub="BluxTech Studio renders on this machine. Everything below must be in place once; the big downloads (Whisper model, HyperFrames) happen here." />}
@@ -46,6 +62,27 @@ export default function Setup({ onDone, embedded }: { onDone?: () => void; embed
           </div>
         ))}
       </Card>
+      {needsKey && (
+        <Card className="mt-3 p-4">
+          <div className="font-medium">Anthropic API key</div>
+          <div className="mt-0.5 text-[12.5px] text-ink-3">
+            The editing steps run on Claude through your own API key (console.anthropic.com → API keys). It is stored sealed to this Windows user and never shown again.
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <input
+              type="password"
+              placeholder="sk-ant-…"
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && key.trim() && saveKey()}
+              className="h-[28px] w-[360px] rounded-[5px] border border-line bg-well px-2 text-[13px] shadow-[inset_0_1px_2px_rgb(0_0_0/0.25)] focus:border-accent focus:outline-none"
+            />
+            <Button variant="primary" small onClick={saveKey} disabled={keyBusy || !key.trim()}>
+              {keyBusy ? "Saving…" : "Save key"}
+            </Button>
+          </div>
+        </Card>
+      )}
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <Button onClick={load}>Check again</Button>
         {fixable && (

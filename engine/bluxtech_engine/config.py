@@ -32,7 +32,8 @@ AUTH_CONFIG = STUDIO / "desktop" / "supabase.config.json"
 LICENSE_KEY = STUDIO / "desktop" / "license_public_key.pem"
 HOST, PORT, AUTH = "127.0.0.1", 8766, True
 HF = SKILL = SCRIPTS = BATCH = None
-GPT_DIR = Path.home() / "Documents" / "ChatGPT" / "asstets tool ebox"
+GPT_TOOL_DIR = Path.home() / "Documents" / "ChatGPT" / "asstets tool ebox"   # the GPT asset tool's own folder
+GPT_DIR = GPT_TOOL_DIR                               # the illustration library in use (see init)
 
 
 def _plain(p: Path) -> Path:
@@ -62,6 +63,16 @@ def init(workspace=None, resources=None, port=None, auth=True, data=None):
         ROOT = Path(workspace).resolve() if workspace else STUDIO.parent
     if data:
         DATA = Path(data).resolve()
+    # the illustration library: the GPT asset tool's folder when this PC has it (the owner's machine), else the copy
+    # the installer ships, laid into the workspace by environment.init_workspace (BLUXTECH_GPT_DIR overrides both)
+    global GPT_DIR
+    env_lib = os.environ.get("BLUXTECH_GPT_DIR")
+    if env_lib:
+        GPT_DIR = Path(env_lib)
+    elif (GPT_TOOL_DIR / "library.json").exists():
+        GPT_DIR = GPT_TOOL_DIR
+    elif RESOURCES and (RESOURCES / "assets" / "library.json").exists():
+        GPT_DIR = ROOT / "assets"
     HF = ROOT / "_hyperframes"
     SKILL = ROOT / ".claude" / "skills" / "camel-gpt"
     SCRIPTS = SKILL / "scripts"
@@ -122,11 +133,37 @@ def claude_bin():
     return None
 
 
+def codex_bin():
+    """The Codex CLI the skill draws new pictures with (the ChatGPT desktop app ships it), or None: then the ads use
+    the library as it is and no drawing is asked for."""
+    import re
+    for key in ("GPT_ASSETS_CODEX", "CODEX_CLI_PATH"):           # the same search as the skill's gpt_assets.find_codex
+        p = os.environ.get(key)
+        if p and Path(p).is_file():
+            return p
+    cfg = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex") / "config.toml"
+    if cfg.is_file():
+        m = re.search(r"""CODEX_CLI_PATH\s*=\s*['"]([^'"]+)['"]""", cfg.read_text(encoding="utf-8", errors="ignore"))
+        if m and Path(m.group(1)).is_file():
+            return m.group(1)
+    try:
+        apps = Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "WindowsApps"
+        hits = sorted(apps.glob("OpenAI.Codex_*/app/resources/codex.exe"), reverse=True)
+        if hits:
+            return str(hits[0])
+    except OSError:
+        pass
+    return shutil.which("codex")
+
+
 def child_env(extra=None):
     env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1", "PYTHONUTF8": "1"}
     dirs = tool_dirs()
     if dirs:
         env["PATH"] = os.pathsep.join([str(d) for d in dirs] + [env.get("PATH", "")])
+    # the skill's asset_lib.py / gpt_assets.py read the library from here (their default is the GPT tool's folder)
+    env.setdefault("GPT_ASSETS_PROJECT", str(GPT_DIR))
+    env.setdefault("CAMEL_GPT_LIBRARY", str(GPT_DIR / "library.json"))
     if extra:
         env.update(extra)
     return env

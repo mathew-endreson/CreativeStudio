@@ -1,7 +1,10 @@
 # One command to a Windows installer:  .\installer\build.ps1
 # Needs on the build machine: Node.js, Rust (rustup, MSVC toolchain) and the Visual Studio C++ Build Tools,
 # python on PATH (for make_icon.py), internet for the runtime downloads. The customer's PC needs none of these.
-param([switch]$SkipRuntime)
+param(
+  [switch]$SkipRuntime,
+  [string]$LibraryDir = ""   # the illustration library to ship (default: the GPT asset tool's folder, else assets-library/)
+)
 $ErrorActionPreference = "Stop"
 $studio = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $desktop = Join-Path $studio "desktop"
@@ -24,8 +27,10 @@ try {
   if ($LASTEXITCODE -ne 0) { throw "UI build failed" }
 } finally { Pop-Location }
 
-if (-not $SkipRuntime) { & (Join-Path $studio "installer\build_runtime.ps1") }
-else { & (Join-Path $studio "installer\build_runtime.ps1") -SkipDownloads }
+$rt = @{}
+if ($LibraryDir) { $rt.LibraryDir = $LibraryDir }
+if (-not $SkipRuntime) { & (Join-Path $studio "installer\build_runtime.ps1") @rt }
+else { & (Join-Path $studio "installer\build_runtime.ps1") -SkipDownloads @rt }
 
 Push-Location -LiteralPath $desktop
 try {

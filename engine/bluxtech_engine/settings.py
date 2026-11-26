@@ -17,7 +17,7 @@ DEFAULTS = {
     "runner": None,                 # None = "cli" in dev, "sdk" when installed (see runner())
     "model": None,                  # None = the CLI's / SDK's default
     "effort": None,
-    "max_budget_usd": 4.0,          # per headless run (sdk runner)
+    "max_budget_usd": 10.0,          # per headless run (sdk runner)
     "max_turns": 120,
     "limits": {"heavy": 1, "claude": 2, "light": 3},
     "gpt_cap": 3,

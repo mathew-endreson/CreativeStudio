@@ -32,7 +32,8 @@ def _verify(token):
     if not key.exists():
         return None
     import jwt
-    return jwt.decode(token or "", key.read_text(encoding="utf-8"), algorithms=["RS256"],
+    # leeway: the token's iat/exp come from the server's clock; a PC a few minutes behind must not be locked out
+    return jwt.decode(token or "", key.read_text(encoding="utf-8"), algorithms=["RS256"], leeway=300,
                       options={"require": ["exp", "sub"]})
 
 
