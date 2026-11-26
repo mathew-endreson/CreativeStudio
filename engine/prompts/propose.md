@@ -1,4 +1,4 @@
-Use the camel-gpt skill: read `.claude/skills/camel-gpt/SKILL.md` and `.claude/skills/camel-gpt/references/remix.md` first (skip this if you already read them in this session).
+Use the bluxstudio-skill: read `.claude/skills/bluxstudio-skill/SKILL.md` and `.claude/skills/bluxstudio-skill/references/remix.md` first (skip this if you already read them in this session).
 
 # Stage B: propose {{count}} new ads for {{name}} ({{name_ar}})
 
@@ -8,9 +8,9 @@ This is steps 3 and 4 of remix mode: pick pairings that read as one argument and
 
 - `{{src}}/analysis.json`: per source its `hook_end`, `hook_hold`, `body_start`, `cta_start`, offer group, shoot, busy windows, defects and `lines` (the ad split at its clean cut points, with `said` and `can_open_body`); for the product its `duplicates` and `liftable` hooks. The user has checked it, and the fields in a source's `edited` were set by hand. Use its times. If one looks wrong to you, say so in `notes`; do not quietly cut somewhere else.
 - `{{src}}/work/<k>_words.json` and `scan_<k>.json` (silences, editor's cuts, flashes), when you need a cut the lines do not give.
-- `python .claude/skills/camel-gpt/scripts/batch.py frames {{src}} <k> <first>-<last>` writes a strip of those frames to `{{look}}/` (frame number in each tile). Use it on every cut whose role changes.
+- `python .claude/skills/bluxstudio-skill/scripts/batch.py frames {{src}} <k> <first>-<last>` writes a strip of those frames to `{{look}}/` (frame number in each tile). Use it on every cut whose role changes.
 - The B-roll already written for this product, in source time: `{{beats}}`.
-- The GPT library: `python .claude/skills/camel-gpt/scripts/asset_lib.py search "<spoken word>"` shows which picture a word pulls; `asset_lib.py list` shows them all.
+- The product's pictures (the assets its ads animate in front of the speaker): `python .claude/skills/bluxstudio-skill/scripts/asset_lib.py --lib {{lib}} search "<spoken word>"` shows which picture a word pulls, and `asset_lib.py --lib {{lib}} list` shows them all.
 
 Ads that already exist (their segments as `source start-end`, holds as `v0` / `v1`). Never propose one of these again, nor the same ad a frame or two apart:
 {{existing}}
@@ -56,7 +56,7 @@ And from the user: no contradiction between the parts of one ad (one source call
 
 An ad is a list of segments `{src, a0, a1, v0, v1}`, in playing order. `a0`/`a1` is the span (its audio and its length); `v0`/`v1` is the clean picture inside it, cloned to fill the span. Times are frame-exact (a frame number divided by 30, 4 decimals).
 
-- **Segment 0 is the hook.** A source's own hook runs from its start to its `hook_end`, with `v1` = its `hook_hold` when there is one. A hook lifted from a body takes the liftable's `a0`/`a1`/`v0`/`v1` and sets `hook_beats: true`: it keeps its source beats and its cutout, so its picture can open the ad. A hook made of two cuts (a setup and its payoff from elsewhere) is two segments: the second is still hook, and it is not in `body`.
+- **Segment 0 is the hook.** A source's own hook runs from its start to its `hook_end`, with `v1` = its `hook_hold` when there is one. A hook lifted from a body takes the liftable's `a0`/`a1`/`v0`/`v1` and sets `hook_beats: true`: it keeps its source beats, so its picture can open the ad. A hook made of two cuts (a setup and its payoff from elsewhere) is two segments: the second is still hook, and it is not in `body`.
 - **The body** follows, one segment per unbroken stretch of the source: merge consecutive lines into one segment, and start a new one only where you jump. A body that starts at the top of a source's body has `a0` = that source's `hook_end` and `v0` = its `body_start`. Elsewhere use the lines' own `a0`/`a1`/`v0`/`v1`. When the hook was lifted out of this body, leave that stretch out.
 - **The CTA is its own last segment**, and `cta` is its index.
 - **`body`** lists the indices of the segments that carry B-roll: the body segments, never segment 0. The CTA's index goes in `body` only when body and CTA are one unbroken take.
@@ -70,7 +70,7 @@ For each ad also give:
 - **`angle`**: the ad's angle in one line.
 - **`why`**: why hook, body and CTA read as one argument: what the hook promises, how the body pays it, why the order line follows.
 - **`risks`**: what could still go wrong on screen or in the argument. An empty list if nothing.
-- **`graphics`**: the one graphic each body line (and a lifted hook) would get, in order: a beat already written in the beats file (`existing: true`), a disc from remix.md's list, the jar or the offer photo, a library picture (give its id), or `missing` for a picture GPT would have to draw (at most {{gpt_cap}} per ad). Only what he says, where nothing is burned in (`busy`), nothing in the CTA.
+- **`graphics`**: the asset each body line (and a lifted hook) would get, in order. Use `library` for one of the product's pictures (give its id; `existing: true` when that beat is already in the beats file). Use `missing` for an idea he names that no picture shows: the user would have to upload one. Only what he says, one asset at a time, where nothing is burned in (`busy`), nothing in the CTA. Quantities, prices and gifts get none: the burned-in caption says them.
 
 ## Output
 

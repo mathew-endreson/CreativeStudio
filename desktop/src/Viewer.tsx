@@ -86,7 +86,7 @@ export function Viewer({
   }, [toggle, step, seek, dur]);
 
   return (
-    <section className={cx("flex min-h-0 flex-col overflow-hidden rounded-[8px] border border-line-strong bg-surface", className)}>
+    <section className={cx("glass flex min-h-0 flex-col overflow-hidden rounded-[12px]", className)}>
       <header className="flex h-[30px] shrink-0 items-center gap-2 border-b border-line bg-surface-2/60 px-2.5">
         <Icon name="eye" size={13} className="text-ink-3" />
         <div className="min-w-0 flex-1 truncate text-[11.5px] font-semibold text-ink-2">{title ?? "Viewer"}</div>

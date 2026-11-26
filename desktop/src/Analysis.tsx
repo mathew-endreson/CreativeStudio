@@ -435,7 +435,7 @@ export default function Analysis({ p, reload, openJob }: { p: ProductDetail; rel
   return (
     <div className="space-y-[3px]">
       {/* the analysis toolbar */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[8px] border border-line-strong bg-surface px-3 py-2">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 glass rounded-[12px] px-3 py-2">
         {stat("copies", count("copy"))}
         {stat("transcripts", count("words"))}
         {stat("Darija ✓", p.sources.filter((s) => s.darija === "corrected").length)}
@@ -449,7 +449,7 @@ export default function Analysis({ p, reload, openJob }: { p: ProductDetail; rel
           <summary className="flex h-[28px] cursor-pointer list-none items-center gap-1 rounded-[6px] px-2.5 text-[12.5px] text-ink-2 hover:bg-surface-3 hover:text-ink">
             <Icon name="refresh" size={13} /> Redo a step <Icon name="chevronDown" size={12} />
           </summary>
-          <div className="absolute right-0 z-20 mt-1 w-56 rounded-[8px] border border-line-strong bg-surface p-1 shadow-hud">
+          <div className="absolute right-0 z-20 mt-1 w-56 glass rounded-[12px] p-1">
             <button className="block w-full rounded-[5px] px-2 py-1.5 text-left hover:bg-accent hover:text-on-accent" onClick={() => run("prepare", true)}>Check the copies again</button>
             <button className="block w-full rounded-[5px] px-2 py-1.5 text-left hover:bg-accent hover:text-on-accent" onClick={() => run("transcribe", true)}>Transcribe again (then correct)</button>
             <button className="block w-full rounded-[5px] px-2 py-1.5 text-left hover:bg-accent hover:text-on-accent" onClick={() => run("darija", true)}>Correct the Darija again</button>
@@ -470,7 +470,7 @@ export default function Analysis({ p, reload, openJob }: { p: ProductDetail; rel
 
       {analysis && (
         <form
-          className="flex items-center gap-2 rounded-[8px] border border-line-strong bg-surface px-2 py-1.5"
+          className="flex items-center gap-2 glass rounded-[10px] px-2 py-1.5"
           onSubmit={async (e) => {
             e.preventDefault();
             if (!ask.trim()) return;

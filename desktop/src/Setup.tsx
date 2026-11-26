@@ -42,7 +42,7 @@ export default function Setup({ onDone, embedded }: { onDone?: () => void; embed
   };
 
   return (
-    <div className={embedded ? "" : "mx-auto min-h-full max-w-[900px] bg-bg p-6"}>
+    <div className={embedded ? "" : "mx-auto min-h-full max-w-[900px] p-6"}>
       {!embedded && <PageHeader icon="gear" title="Set up this PC" sub="BluxTech Studio renders on this machine. Everything below must be in place once; the big downloads (Whisper model, HyperFrames) happen here." />}
       {err && <ErrorNote>{err}</ErrorNote>}
       <Card>

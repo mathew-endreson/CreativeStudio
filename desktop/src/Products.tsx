@@ -69,7 +69,7 @@ export default function Products() {
       <div className="grid grid-cols-[repeat(auto-fill,minmax(290px,1fr))] gap-3">
         {shown.map((p) =>
           p.not_imported || p.error ? (
-            <div key={p.slug} className="rounded-[8px] border border-dashed border-line bg-surface/60 p-3">
+            <div key={p.slug} className="rounded-[12px] border border-dashed border-line-strong bg-surface/40 p-3 backdrop-blur-md">
               <div className="flex items-center gap-2 font-semibold">
                 <Icon name="folder" size={14} className="text-ink-3" />
                 {p.slug}
@@ -80,7 +80,7 @@ export default function Products() {
             <a
               key={p.slug}
               href={`#/p/${p.slug}/analysis`}
-              className="group block overflow-hidden rounded-[8px] border border-line-strong bg-surface ring-2 ring-transparent transition-shadow hover:ring-sel focus-visible:ring-sel"
+              className="glass group block overflow-hidden rounded-[12px] ring-2 ring-transparent transition-[box-shadow,transform] duration-150 hover:-translate-y-px hover:ring-sel focus-visible:ring-sel"
             >
               <div className="viewer relative flex h-[112px] flex-col justify-between p-3">
                 <div className="flex items-start justify-between gap-2">

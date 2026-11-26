@@ -24,7 +24,7 @@ function Modal({ title, onClose, children, wide }: { title: string; onClose: () 
       <div
         role="dialog"
         aria-label={title}
-        className={cx("flex max-h-[94vh] w-full flex-col overflow-hidden rounded-[10px] border border-line-strong bg-surface shadow-hud", wide ? "max-w-[1240px]" : "max-w-[560px]")}
+        className={cx("glass flex max-h-[94vh] w-full flex-col overflow-hidden rounded-[14px]", wide ? "max-w-[1240px]" : "max-w-[560px]")}
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex h-[36px] shrink-0 items-center gap-2 border-b border-line bg-surface-2/60 px-3">

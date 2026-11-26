@@ -9,65 +9,79 @@
   font-display: swap;
 }
 
-/* Final Cut–inspired graphite workspace.
-   bg = the window behind the panes, surface = a pane, surface-2 = a control or inset well,
-   well = the timeline / viewer floor, line = hairlines inside a pane, line-strong = the gutters between panes. */
+/* DaVinci Resolve's graphite workspace, built from liquid glass.
+   bg = the floor behind everything (a deep gradient backdrop sits on it), surface = a glass pane, surface-2 = a
+   control or a raised glass element, surface-3 = a lit control, well = an inset (fields, the timeline floor),
+   line = hairlines inside a pane, line-strong = a pane's own edge. The *-opaque values replace the glass when the
+   OS asks for reduced transparency. Amber is the one strong colour, as in Resolve; everything else is grey. */
 :root {
-  --bg: #d9d9db;
-  --surface: #f4f4f5;
-  --surface-2: #e7e7e9;
-  --surface-3: #dcdcdf;
-  --well: #cfcfd3;
-  --line: #cbcbcf;
-  --line-strong: #b4b4b9;
-  --ink: #1d1d1f;
-  --ink-2: #55555a;
-  --ink-3: #86868b;
-  --accent: #0a6cf0;
-  --accent-soft: #dce9fd;
+  --bg: #d6d8de;
+  --surface: rgb(255 255 255 / 0.58);
+  --surface-opaque: #eef0f3;
+  --surface-2: rgb(255 255 255 / 0.46);
+  --surface-3: rgb(255 255 255 / 0.78);
+  --well: rgb(0 0 0 / 0.07);
+  --line: rgb(0 0 0 / 0.08);
+  --line-strong: rgb(0 0 0 / 0.14);
+  --ink: #1b1b1f;
+  --ink-2: #4f4f56;
+  --ink-3: #7c7c85;
+  --accent: #b8650f;
+  --accent-soft: rgb(184 101 15 / 0.14);
   --on-accent: #ffffff;
-  --sel: #d99a00;
-  --playhead: #1d1d1f;
-  --skim: #e0245e;
-  --hook: #c97a06;
-  --body: #2f6fd6;
-  --cta: #7f4fe0;
-  --audio: #3d8f57;
-  --audio-wave: #1f5e34;
-  --ok: #1f8a4c;
-  --warn: #a8670b;
-  --bad: #d0342c;
-  --bad-soft: #fbe3e1;
-  --shadow: 0 10px 40px rgb(0 0 0 / 0.18), 0 0 0 1px rgb(0 0 0 / 0.08);
+  --sel: #c48f00;
+  --playhead: #1b1b1f;
+  --skim: #d61f5c;
+  --hook: #b86a06;
+  --body: #2a63c4;
+  --cta: #6f43d0;
+  --audio: #2f7f48;
+  --audio-wave: #1c5630;
+  --ok: #1f7f45;
+  --warn: #9a5f0a;
+  --bad: #c7302a;
+  --bad-soft: rgb(199 48 42 / 0.12);
+  --glass-hi: rgb(255 255 255 / 0.65);
+  --glass-blur: 20px;
+  --shadow: 0 14px 40px rgb(20 24 40 / 0.18);
+  --orb-1: rgb(120 150 255 / 0.5);
+  --orb-2: rgb(255 170 80 / 0.4);
+  --orb-3: rgb(90 200 180 / 0.4);
   color-scheme: light;
 }
 .dark {
-  --bg: #111112;
-  --surface: #232325;
-  --surface-2: #2c2c2f;
-  --surface-3: #37373a;
-  --well: #1a1a1b;
-  --line: #333336;
-  --line-strong: #070708;
-  --ink: #e8e8ea;
-  --ink-2: #a5a5aa;
-  --ink-3: #6f6f75;
-  --accent: #3a8bff;
-  --accent-soft: #13294a;
-  --on-accent: #ffffff;
+  --bg: #0e0e11;
+  --surface: rgb(30 30 36 / 0.62);
+  --surface-opaque: #1e1e24;
+  --surface-2: rgb(52 52 62 / 0.55);
+  --surface-3: rgb(76 76 88 / 0.62);
+  --well: rgb(6 6 9 / 0.6);
+  --line: rgb(255 255 255 / 0.07);
+  --line-strong: rgb(255 255 255 / 0.13);
+  --ink: #e9e9ee;
+  --ink-2: #aaaab4;
+  --ink-3: #7a7a85;
+  --accent: #ec9a2a;
+  --accent-soft: rgb(236 154 42 / 0.16);
+  --on-accent: #17100a;
   --sel: #f5c330;
   --playhead: #f2f2f2;
   --skim: #ff4d7a;
   --hook: #e3a13f;
-  --body: #4f8fec;
-  --cta: #9c74f0;
+  --body: #5a97f0;
+  --cta: #a07cf4;
   --audio: #2f6b43;
   --audio-wave: #8fe0a6;
-  --ok: #5bd08a;
+  --ok: #5fd28e;
   --warn: #f2b23f;
   --bad: #ff6b60;
-  --bad-soft: #3a1a18;
-  --shadow: 0 18px 60px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(255 255 255 / 0.06);
+  --bad-soft: rgb(255 107 96 / 0.14);
+  --glass-hi: rgb(255 255 255 / 0.11);
+  --glass-blur: 22px;
+  --shadow: 0 18px 50px rgb(0 0 0 / 0.5);
+  --orb-1: rgb(40 70 170 / 0.55);
+  --orb-2: rgb(236 154 42 / 0.3);
+  --orb-3: rgb(18 110 105 / 0.45);
   color-scheme: dark;
 }
 
@@ -136,10 +150,94 @@ input[type="checkbox"],
 input[type="radio"] {
   accent-color: var(--accent);
 }
+
+@layer components {
+  /* the floor: a deep gradient with three soft colour fields, so the glass above has something to refract */
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(60% 55% at 12% 8%, var(--orb-1), transparent 62%),
+      radial-gradient(45% 40% at 88% 14%, var(--orb-2), transparent 60%),
+      radial-gradient(55% 50% at 62% 100%, var(--orb-3), transparent 62%),
+      var(--bg);
+  }
+  .backdrop::after {
+    /* fine grain, so large flat areas do not band */
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.045;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+  }
+
+  /* liquid glass: a pane. Translucent, blurred and saturated, with a light top edge (the specular highlight)
+     and a darker bottom edge, so it reads as a slab of glass lying on the backdrop. */
+  .glass {
+    background: var(--surface);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.5);
+    backdrop-filter: blur(var(--glass-blur)) saturate(1.5);
+    border: 1px solid var(--line-strong);
+    box-shadow:
+      inset 0 1px 0 var(--glass-hi),
+      inset 0 -1px 0 rgb(0 0 0 / 0.18),
+      var(--shadow);
+  }
+  /* a control: a smaller, lighter piece of glass */
+  .glass-2 {
+    background: var(--surface-2);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    backdrop-filter: blur(14px) saturate(1.4);
+    border: 1px solid var(--line-strong);
+    box-shadow:
+      inset 0 1px 0 var(--glass-hi),
+      0 1px 2px rgb(0 0 0 / 0.25);
+  }
+  /* the chrome: the title bar and the page bar, denser glass with a single edge line */
+  .glass-bar {
+    background: color-mix(in srgb, var(--surface) 80%, var(--surface-opaque));
+    -webkit-backdrop-filter: blur(28px) saturate(1.6);
+    backdrop-filter: blur(28px) saturate(1.6);
+    box-shadow: inset 0 1px 0 var(--glass-hi);
+  }
+  /* an inset well in glass: fields, the timeline floor */
+  .glass-well {
+    background: var(--well);
+    box-shadow:
+      inset 0 1px 3px rgb(0 0 0 / 0.35),
+      inset 0 0 0 1px var(--line);
+  }
+  /* the amber primary: a glowing piece of tinted glass */
+  .glass-accent {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white), var(--accent) 55%, color-mix(in srgb, var(--accent) 86%, black));
+    border: 1px solid color-mix(in srgb, var(--accent) 60%, black);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.45),
+      inset 0 -1px 0 rgb(0 0 0 / 0.25),
+      0 6px 18px color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+}
+
+/* reduced transparency: the same layout on opaque panes */
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass-2,
+  .glass-bar {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--surface-opaque);
+  }
+  .backdrop {
+    background: var(--bg);
+  }
+}
+
 .num {
   font-variant-numeric: tabular-nums;
 }
-/* Final Cut's dashboard timecode */
+/* the dashboard timecode */
 .tc {
   font-family: var(--font-tc);
   font-variant-numeric: tabular-nums;
@@ -149,7 +247,7 @@ input[type="radio"] {
 .hatch {
   background-image: repeating-linear-gradient(135deg, currentColor 0 2px, transparent 2px 6px);
 }
-/* a clip in the timeline: lighter top edge, darker bottom, like FCP's clip bodies */
+/* a clip in the timeline: lighter top edge, darker bottom */
 .clip {
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.22),
@@ -195,4 +293,13 @@ details > summary::-webkit-details-marker {
 }
 .spin-slow {
   animation: spin-slow 1.6s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

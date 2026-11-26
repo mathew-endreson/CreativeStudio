@@ -57,10 +57,12 @@ function useHash() {
   return hash;
 }
 
-const NAV: { href: string; label: string; match: (p: string[]) => boolean; icon: IconName }[] = [
+/** The pages, laid out like Resolve's page bar along the bottom. */
+const PAGES: { href: string; label: string; match: (p: string[]) => boolean; icon: IconName }[] = [
   { href: "#/", label: "Projects", match: (p) => p.length === 0 || p[0] === "p" || p[0] === "new", icon: "film" },
   { href: "#/fresh", label: "Fresh edit", match: (p) => p[0] === "fresh", icon: "wand" },
   { href: "#/library", label: "Assets", match: (p) => p[0] === "library", icon: "images" },
+  { href: "#/settings", label: "Settings", match: (p) => p[0] === "settings" || p[0] === "setup", icon: "gear" },
 ];
 
 /** One row of the Libraries sidebar. */
@@ -98,7 +100,7 @@ function Disclosure({ label, open, onToggle, children, action }: { label: string
 }
 
 /** Final Cut's Libraries sidebar: every project ("event") and fresh edit, one click away. */
-function Sidebar({ parts, info, jobs }: { parts: string[]; info: AppInfo; jobs: Job[] }) {
+function Sidebar({ parts, jobs }: { parts: string[]; jobs: Job[] }) {
   const [products, setProducts] = useState<ProductCard[]>([]);
   const [fresh, setFresh] = useState<FreshProject[]>([]);
   const [open, setOpen] = useState<Record<string, boolean>>({ p: true, f: true });
@@ -117,8 +119,8 @@ function Sidebar({ parts, info, jobs }: { parts: string[]; info: AppInfo; jobs: 
   );
 
   return (
-    <aside className="flex w-[232px] shrink-0 flex-col overflow-hidden rounded-[8px] border border-line-strong bg-surface">
-      <div className="flex h-[30px] shrink-0 items-center border-b border-line bg-surface-2/60 px-2.5 text-[11.5px] font-semibold text-ink-2">Libraries</div>
+    <aside className="glass flex w-[232px] shrink-0 flex-col overflow-hidden rounded-[12px]">
+      <div className="flex h-[30px] shrink-0 items-center border-b border-line bg-white/[0.03] px-2.5 text-[11.5px] font-semibold text-ink-2">Libraries</div>
       <nav className="min-h-0 flex-1 overflow-auto px-1.5 py-2">
         <div className="mb-2 flex items-center gap-2 px-2 py-1">
           <BrandMark size={18} />
@@ -169,10 +171,6 @@ function Sidebar({ parts, info, jobs }: { parts: string[]; info: AppInfo; jobs: 
           <SideItem href="#/settings" icon="gear" label="Settings" on={parts[0] === "settings"} />
         </Disclosure>
       </nav>
-      <div className="shrink-0 border-t border-line px-3 py-2 text-[11px] text-ink-3">
-        v{info.version} · {info.mode} · runner {info.runner}
-        {info.license.licensing && info.license.email && <span className="block truncate">{info.license.email}</span>}
-      </div>
     </aside>
   );
 }
@@ -198,53 +196,71 @@ function Shell({ info, children, openPanel, jobs, theme, cycle }: { info: AppInf
     return () => window.removeEventListener("keydown", on);
   }, [openPanel, toggleSide]);
 
+  const page = PAGES.find((n) => n.match(parts)) ?? PAGES[0];
+
   return (
-    <div className="flex h-full flex-col bg-bg">
-      {/* the toolbar */}
-      <header className="flex h-[44px] shrink-0 items-center gap-1.5 border-b border-line-strong bg-surface px-2">
+    <div className="flex h-full flex-col">
+      {/* the title bar: Resolve's slim top strip, the window's name in the middle */}
+      <header className="glass-bar relative z-10 flex h-[38px] shrink-0 items-center gap-1 border-b border-line px-2">
         <IconButton icon="sidebar" label="Show or hide the Libraries sidebar (Ctrl+Shift+1)" on={side} onClick={toggleSide} />
-        <a href="#/" className="mr-2 ml-1 flex items-center gap-2">
-          <BrandMark size={22} />
-          <span className="hidden text-[13px] font-semibold tracking-tight md:inline">BluxTech Studio</span>
+        <a href="#/" className="ml-1 flex items-center" title="Projects">
+          <BrandMark size={20} />
         </a>
-        <div className="h-5 w-px bg-line" />
-        <nav className="ml-1 flex items-center gap-0.5">
-          {NAV.map((n) => {
+        <div className="min-w-0 flex-1 truncate px-2 text-center text-[12.5px] font-semibold tracking-tight text-ink-2">
+          <span className="hidden sm:inline">BluxTech Studio</span>
+          <span className="hidden text-ink-3 sm:inline"> · </span>
+          <span className="text-ink">{page.label}</span>
+        </div>
+        <TasksButton jobs={jobs} onClick={openPanel} />
+        <IconButton icon={themeIcon[theme]} label={`Theme: ${theme} (click to change)`} onClick={cycle} />
+        <Button small variant="primary" icon="plus" onClick={() => (location.hash = "#/new")} className="ml-1">
+          New project
+        </Button>
+      </header>
+      <div className="flex min-h-0 flex-1 gap-[6px] p-[6px]">
+        {side && <Sidebar parts={parts} jobs={jobs} />}
+        <main className="min-w-0 flex-1 overflow-auto rounded-[12px] px-4 py-3">{children}</main>
+      </div>
+      {/* the page bar: Resolve's row of pages along the bottom, the active one lit amber */}
+      <footer className="glass-bar relative z-10 flex h-[54px] shrink-0 items-center border-t border-line px-3">
+        <div className="hidden w-[200px] shrink-0 items-center gap-2 text-[11px] text-ink-3 md:flex">
+          <BrandMark size={16} />
+          <span className="num">v{info.version}</span>
+          <span>·</span>
+          <span>{info.mode}</span>
+        </div>
+        <nav className="flex min-w-0 flex-1 justify-center gap-1" aria-label="Pages">
+          {PAGES.map((n) => {
             const on = n.match(parts);
             return (
               <a
                 key={n.href}
                 href={n.href}
+                aria-current={on ? "page" : undefined}
                 className={cx(
-                  "flex h-[28px] items-center gap-1.5 rounded-[6px] px-2.5 text-[12.5px] font-medium transition-colors",
-                  on ? "bg-accent/20 text-accent" : "text-ink-2 hover:bg-surface-3 hover:text-ink",
+                  "group flex w-[86px] flex-col items-center gap-[3px] rounded-[9px] py-1 text-[10.5px] font-medium transition-colors duration-150",
+                  on ? "text-accent" : "text-ink-3 hover:text-ink",
                 )}
               >
-                <Icon name={n.icon} size={15} />
-                <span className="hidden lg:inline">{n.label}</span>
+                <span className={cx("grid h-[24px] w-[36px] place-items-center rounded-[8px] transition-[background,box-shadow,color] duration-150", on ? "glass-2 text-accent" : "group-hover:bg-surface-2")}>
+                  <Icon name={n.icon} size={17} />
+                </span>
+                {n.label}
               </a>
             );
           })}
         </nav>
-        <div className="flex-1" />
-        <TasksButton jobs={jobs} onClick={openPanel} />
-        <div className="flex-1" />
-        <IconButton icon={themeIcon[theme]} label={`Theme: ${theme} (click to change)`} onClick={cycle} />
-        <IconButton icon="gear" label="Settings" on={parts[0] === "settings"} onClick={() => (location.hash = "#/settings")} />
-        <Button small variant="primary" icon="plus" onClick={() => (location.hash = "#/new")} className="ml-1">
-          New project
-        </Button>
-      </header>
-      <div className="flex min-h-0 flex-1 gap-[3px] p-[3px]">
-        {side && <Sidebar parts={parts} info={info} jobs={jobs} />}
-        <main className="min-w-0 flex-1 overflow-auto rounded-[8px] px-4 py-3">{children}</main>
-      </div>
+        <div className="hidden w-[200px] shrink-0 items-center justify-end gap-2 text-[11px] text-ink-3 md:flex">
+          {info.license.licensing && info.license.email && <span className="min-w-0 truncate">{info.license.email}</span>}
+          <span className="shrink-0">· runner {info.runner}</span>
+        </div>
+      </footer>
     </div>
   );
 }
 
 function Centered({ children }: { children: ReactNode }) {
-  return <div className="grid min-h-full place-items-center bg-bg p-6">{children}</div>;
+  return <div className="grid min-h-full place-items-center p-6">{children}</div>;
 }
 
 export default function App() {

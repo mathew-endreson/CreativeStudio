@@ -7,7 +7,7 @@ from typing import Callable
 
 from pydantic import ValidationError
 
-from . import config, schemas, store
+from . import assetlib, config, schemas, store
 
 # Tools: files, python, ffmpeg / ffprobe, and the HyperFrames CLI. Nothing else, and no permission bypass.
 FILES = ["Read", "Write", "Edit", "Glob", "Grep"]
@@ -190,7 +190,7 @@ def propose_context(d, P, args):
         "earlier": "\n".join(earlier) or "- none",
         "ads_listing": "\n".join(f"- {n}" for n in listing) or "- (empty)",
         "beats": store.rel(beats) if beats.exists() else "(no beats file yet: every graphic would be new)",
-        "gpt_cap": P.get("gpt_cap", 3), "look": f"{src}/work/look",
+        "gpt_cap": P.get("gpt_cap", 3), "lib": store.rel(assetlib.product_lib(d, P)), "look": f"{src}/work/look",
         "output": f"{src}/work/proposed.json", "schema": schema_text(schemas.Proposed),
     }
 

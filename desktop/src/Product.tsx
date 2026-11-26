@@ -31,7 +31,7 @@ export default function Product({ slug, tab, openJob }: { slug: string; tab: str
 
   return (
     <div>
-      <div className="mb-[3px] rounded-[8px] border border-line-strong bg-surface px-3 py-2.5">
+      <div className="glass mb-[6px] rounded-[12px] px-3 py-2.5">
         <div className="flex flex-wrap items-center gap-3">
           <span className="clip grid h-9 w-9 shrink-0 place-items-center rounded-[8px] bg-surface-3 text-sel">
             <Icon name="star" size={17} />

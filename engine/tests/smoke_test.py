@@ -113,6 +113,10 @@ def main():
             check(f"results of {slug}", s2 == 200 and "mixes" in b2, f"{s2} {len(b2.get('mixes', [])) if isinstance(b2, dict) else b2} mixes")
             s2, b2, _ = call(base, f"/api/products/{slug}/proposals", token)
             check(f"proposals of {slug}", s2 == 200, s2)
+            s2, b2, _ = call(base, f"/api/products/{slug}/pictures", token)
+            check(f"pictures of {slug}", s2 == 200 and "assets" in b2, f"{s2} {b2.get('counts') if isinstance(b2, dict) else b2}")
+            s2, b2, _ = call(base, f"/media/{slug}/img/..%2Fproduct.json", token)
+            check("picture route refuses paths", s2 == 404, s2)
     subprocess.run(["taskkill", "/PID", str(p.pid), "/T", "/F"], capture_output=True) if os.name == "nt" else p.kill()
     bad = [r for r in results if not r[1]]
     for name, ok, info in results:

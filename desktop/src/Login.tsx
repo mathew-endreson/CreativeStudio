@@ -71,7 +71,7 @@ export default function Login({ version }: { version: string }) {
   const needsCode = mode === "confirm" || mode === "code";
 
   return (
-    <div className="grid min-h-full place-items-center bg-bg p-6">
+    <div className="grid min-h-full place-items-center p-6">
       <Card className="w-[400px] p-6 shadow-hud">
         <div className="mb-5 flex items-center gap-3">
           <BrandMark size={40} />

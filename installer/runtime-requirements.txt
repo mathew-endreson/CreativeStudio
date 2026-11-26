@@ -1,4 +1,4 @@
-# What the camel-gpt skill's scripts import (besides the engine's own requirements.txt): installed into the
+# What the bluxstudio-skill's scripts import (besides the engine's own requirements.txt): installed into the
 # embedded Python runtime that ships with the app (installer/build_runtime.ps1).
 numpy
 scipy

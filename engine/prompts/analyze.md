@@ -1,4 +1,4 @@
-Use the camel-gpt skill: read `.claude/skills/camel-gpt/SKILL.md` and `.claude/skills/camel-gpt/references/remix.md` first.
+Use the bluxstudio-skill: read `.claude/skills/bluxstudio-skill/SKILL.md` and `.claude/skills/bluxstudio-skill/references/remix.md` first.
 
 # Stage A: analyze the finished ads of {{name}} ({{name_ar}})
 
@@ -28,8 +28,8 @@ Each `scan_<k>.json` has:
 To look at frames (the contact sheet is too small to judge a flash or read a caption):
 
 ```
-python .claude/skills/camel-gpt/scripts/batch.py frames {{src}} <k> 196-203
-python .claude/skills/camel-gpt/scripts/batch.py frames {{src}} <k> 300-420 --every 30 --width 540 --crop 0:1000:1080:520
+python .claude/skills/bluxstudio-skill/scripts/batch.py frames {{src}} <k> 196-203
+python .claude/skills/bluxstudio-skill/scripts/batch.py frames {{src}} <k> 300-420 --every 30 --width 540 --crop 0:1000:1080:520
 ```
 
 It prints each frame's luma and frame difference and writes a strip to `{{look}}/` with the frame number in each tile's corner. Read the picture it names. `--crop x:y:w:h` with `--width 540` is for reading a burned-in caption or title; move the crop to where this edit puts them.
@@ -61,7 +61,7 @@ For each source, in this order:
 5. **Lines** (`lines`): the whole ad split at its clean cut points, in order, from 0 to the end. A cut point is a silence of 0.12 s or more (use its quietest spot), an editor's cut, or the frame after a flash. Give each line its role, and `v0` / `v1` when its first or last frames are not clean. Mark `can_open_body` on the body lines a body could start on under another hook. Each line carries its words twice:
    - `text`: the transcript exactly as Whisper wrote it, slips included («يأتي من مغصن تعشاجها»). It is kept for keyword matching: do not correct it.
    - `said`: what he actually says, in clean spoken Algerian Darija, the way a caption would write it (`camel-style.md` §2: digits for quantities, "إي بوكس") («يأتي من غصن الأشجار»). Fix Whisper's slips from the burned-in caption and the sense. Keep his words and his Darija: nothing added, nothing turned into standard Arabic. This is what the user reads in the app.
-6. **Busy windows** (`busy`): every moment a graphic behind the speaker would clash with something burned in: top titles (a two-line title fills both sides), photo cards, full-screen B-roll, the phone-mockup CTA. Start from `titles`, then check each on the contact sheet and by eye; add what the scanner missed, drop what is only a warm background.
+6. **Busy windows** (`busy`): every moment something is burned in where an asset would go or that it must not cover. The assets sit in front of the speaker at chest height, above the burned-in captions. List photo cards at chest height, full-screen B-roll and the phone-mockup CTA (`full`); note top titles too (`T`: they do not block an asset). Start from `titles`, then check each one on the contact sheet and by eye. Add what the scanner missed, and drop what is only a warm background.
 7. **Defects** (`defects`): what the prepare report and the scan flag (phase-inverted original, black frames, a fade-in at the start with the first clean time), and what you see: a typo in a burned-in caption (quote it; read the captions of a few lines per source at `--width 540`), a stray caption or a dissolve ghost at a cut point.
 8. **Offer group and shoot**: what is on the table and what he says the offer is; the place, the clothes, the set. Two sources share a group only if both match.
 

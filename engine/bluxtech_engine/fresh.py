@@ -1,14 +1,16 @@
 """Fresh edits: one clean talking-head footage -> one ad, the skill's steps 1-10.
 
-The app does the mechanical steps as jobs (step 1 new_project.py, step 2 the speaker cutout, the Whisper pass of
-step 3), the user sets hook end / body / CTA on the timeline, and Claude does the judgment and the render headless
-(stage `fresh`). The marker <project>/.work/fresh.json makes a HyperFrames project a fresh edit of the app."""
+The app does the mechanical steps as jobs (step 1 new_project.py, step 2 the speaker cutout, which the gold
+particles and the delivery route still need, the Whisper pass of step 3), the user sets hook end / body / CTA on the
+timeline, and Claude does the judgment and the render headless (stage `fresh`): it indexes the ad's asset folder
+(the pictures the user gave for it), writes their keywords, plans and places them in front of the speaker by the
+caption. The marker <project>/.work/fresh.json makes a HyperFrames project a fresh edit of the app."""
 import json
 import re
 import time
 from pathlib import Path
 
-from . import config, darija, store
+from . import assetlib, config, darija, store
 from .jobs import JobFailed
 from .store import B, NotFound, jdump, jload
 
@@ -26,8 +28,14 @@ def load(slug):
         raise NotFound(slug)
     proj = config.HF / slug
     P = {"slug": slug, "name": f.get("name") or slug, "product_dir": str(Path(f["footage"]).parent),
-         "ads_dir": str(out_dir(f)), "fresh": f}
+         "ads_dir": str(out_dir(f)), "assets_dir": str(assets_folder(proj, f)), "fresh": f}
     return proj, P, {}
+
+
+def assets_folder(proj, f):
+    """The pictures the user gave for this ad (a folder of transparent PNG / WebP cut-outs; asset_lib.py index
+    writes its library.json there). Default: <project>/uploads."""
+    return Path(f["assets"]) if f.get("assets") else Path(proj) / assetlib.FRESH_FOLDER
 
 
 def main_footage(proj):
@@ -62,6 +70,7 @@ def info(slug):
     proj = config.HF / slug
     main = main_footage(proj)
     res = jload(proj / ".work" / "fresh_result.json")
+    folder = assets_folder(proj, f)
     out = Path(res["output"]) if res and res.get("output") else None
     st = store.studio(proj)
     return {**f, "slug": slug, "dir": store.rel(proj), "main": main.name if main else None,
@@ -71,6 +80,9 @@ def info(slug):
             "sheet": (proj / ".work" / "sheet.jpg").exists(), "final_sheet": (proj / ".work" / "final_sheet.jpg").exists(),
             "result": res, "ad": bool(out and out.exists()), "ad_path": str(out) if out else None,
             "out_path": str(out_path(f)), "session_id": st.get("session_id"), "usage": store.usage(st),
+            "assets_dir": str(folder), "assets_count": sum(1 for p in folder.iterdir() if p.is_file() and p.suffix.lower()
+                                                         in (".png", ".webp", ".jpg", ".jpeg")) if folder.is_dir() else 0,
+            "assets_library": assetlib.counts(folder / "library.json") if (folder / "library.json").exists() else None,
             "snaps": sorted(p.name for p in (proj / ".work" / "snaps").glob("*.png")) if (proj / ".work" / "snaps").is_dir() else []}
 
 
@@ -94,16 +106,26 @@ def slug_for(footage, wanted=None):
     return slug
 
 
-def create(footage, slug=None, out_dir_=None, name=None, whisper_prompt=""):
+def check_assets(path):
+    p = Path(path).expanduser()
+    if not p.is_dir():
+        raise ValueError(f"not a folder: {path}")
+    return str(p.resolve())
+
+
+def create(footage, slug=None, out_dir_=None, name=None, whisper_prompt="", assets=None):
     src = Path(footage).expanduser()
     if not src.is_file() or src.suffix.lower() not in VIDEO:
         raise ValueError(f"not a video file: {footage}")
+    assets = check_assets(assets) if assets else None
     slug = slug_for(src, slug)
     proj = config.HF / slug
     (proj / ".work").mkdir(parents=True)
+    if not assets:
+        (proj / assetlib.FRESH_FOLDER).mkdir()              # the user drops this ad's pictures here
     f = {"slug": slug, "name": name or src.stem, "footage": str(src.resolve()), "out_dir": str(Path(out_dir_).expanduser()) if out_dir_ else None,
-         "whisper_prompt": whisper_prompt.strip(), "marks": None, "created": time.strftime("%Y-%m-%dT%H:%M:%S"),
-         "duration": None, "fps": None, "frames": None}
+         "whisper_prompt": whisper_prompt.strip(), "assets": assets, "marks": None,
+         "created": time.strftime("%Y-%m-%dT%H:%M:%S"), "duration": None, "fps": None, "frames": None}
     jdump(marker(slug), f)
     return slug
 
@@ -121,6 +143,18 @@ def set_marks(slug, marks):
     if dur and not m["cta_start"] < dur:
         raise ValueError(f"the CTA must start before the end ({dur} s)")
     f["marks"] = {k: round(v, 4) for k, v in m.items()}
+    jdump(marker(slug), f)
+    return info(slug)
+
+
+def set_assets(slug, path):
+    """The folder of pictures for this ad (None / '' = the project's own uploads folder)."""
+    f = jload(marker(slug))
+    if not f:
+        raise NotFound(slug)
+    f["assets"] = check_assets(path) if path else None
+    if not path:
+        (config.HF / slug / assetlib.FRESH_FOLDER).mkdir(exist_ok=True)
     jdump(marker(slug), f)
     return info(slug)
 

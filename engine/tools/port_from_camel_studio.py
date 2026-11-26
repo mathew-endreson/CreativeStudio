@@ -41,8 +41,8 @@ patch("jobs.py", [
 patch("claude_runner.py", [
     ("def one_run(ctx, stage, prompt, sid, resume, add_dirs):\n    \"\"\"One claude process.",
      "def one_run_cli(ctx, stage, prompt, sid, resume, add_dirs):\n    \"\"\"One claude process."),
-    ("You are running headless inside Camel Studio, a local app that drives the camel-gpt skill.",
-     "You are running headless inside BluxTech Studio, a desktop app that drives the camel-gpt skill."),
+    ("You are running headless inside Camel Studio, a local app that drives the bluxstudio-skill.",
+     "You are running headless inside BluxTech Studio, a desktop app that drives the bluxstudio-skill."),
     ("           \"five_hour_utilization\": state.get(\"limit\"),\n",
      "           \"five_hour_utilization\": state.get(\"limit\"), \"runner\": \"cli\",\n"),
 ])

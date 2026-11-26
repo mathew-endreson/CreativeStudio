@@ -170,7 +170,7 @@ function Editor({ slug, openJob }: { slug: string; openJob: (id: number) => void
 
   return (
     <div className="space-y-[3px]">
-      <div className="flex flex-wrap items-center gap-3 rounded-[8px] border border-line-strong bg-surface px-3 py-2.5">
+      <div className="flex flex-wrap items-center gap-3 glass rounded-[12px] px-3 py-2.5">
         <span className="clip grid h-9 w-9 shrink-0 place-items-center rounded-[8px] bg-surface-3 text-ink-2">
           <Icon name="wand" size={17} />
         </span>
@@ -488,7 +488,7 @@ export default function Fresh({ slug, openJob }: { slug?: string; openJob: (id: 
       {list && list.length === 0 && <Empty title="No fresh edit yet" icon="wand" />}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
         {list?.map((f) => (
-          <a key={f.slug} href={`#/fresh/${f.slug}`} className="block rounded-[8px] border border-line-strong bg-surface p-3 ring-2 ring-transparent transition-shadow hover:ring-sel">
+          <a key={f.slug} href={`#/fresh/${f.slug}`} className="glass block rounded-[12px] p-3 ring-2 ring-transparent transition-shadow hover:ring-sel">
             <div className="flex items-start justify-between gap-2">
               <div className="flex min-w-0 items-center gap-2.5">
                 <span className="clip grid h-8 w-8 shrink-0 place-items-center rounded-[6px] bg-surface-3 text-ink-2">

@@ -111,7 +111,9 @@ Get-ChildItem -LiteralPath (Join-Path $eng "bluxtech_engine") -Recurse -Director
 Copy-Item -Recurse -LiteralPath (Join-Path $studio "engine\prompts") (Join-Path $eng "prompts")
 
 # the two skills the engine lays into the workspace (environment.init_workspace): the edit pipeline and the Darija guide
-foreach ($name in @("camel-gpt", "darijadz")) {
+$renamed = Join-Path $res "skill\camel-gpt"     # the edit skill's name until Nov 26 2026: never ship it twice
+if (Test-Path -LiteralPath $renamed) { Remove-Item -Recurse -Force -LiteralPath $renamed }
+foreach ($name in @("bluxstudio-skill", "darijadz")) {
   $skill = Join-Path $res "skill\$name"
   if (Test-Path -LiteralPath $skill) { Remove-Item -Recurse -Force -LiteralPath $skill }
   New-Item -ItemType Directory -Force (Split-Path -Parent $skill) | Out-Null
@@ -123,6 +125,18 @@ foreach ($name in @("camel-gpt", "darijadz")) {
 # PC has no VC++ redistributable, and app-local deployment of these DLLs is what Microsoft allows). From the VS Build
 # Tools' VC\Redist\MSVC\<ver>\x64\Microsoft.VC143.{CRT,OpenMP}, kept in installer\vcredist.
 $vc = Join-Path $studio "installer\vcredist"
+if (-not (Test-Path -LiteralPath $vc)) {
+  # not kept in the repository: taken from a Visual Studio / Build Tools install (VC\Redist\MSVC\<ver>\x64), which
+  # the build PC and the GitHub Actions windows runners both have
+  $crt = Get-ChildItem "C:\Program Files*\Microsoft Visual Studio\*\*\VC\Redist\MSVC\*\x64\Microsoft.VC143.CRT" -Directory -ErrorAction SilentlyContinue | Sort-Object FullName -Descending | Select-Object -First 1
+  if ($crt) {
+    New-Item -ItemType Directory -Force $vc | Out-Null
+    Copy-Item -Path (Join-Path $crt.FullName "*.dll") -Destination $vc -Force
+    $omp = Join-Path $crt.Parent.FullName "Microsoft.VC143.OpenMP"
+    if (Test-Path -LiteralPath $omp) { Copy-Item -Path (Join-Path $omp "*.dll") -Destination $vc -Force }
+    Write-Output "vc runtime: taken from $($crt.FullName)"
+  }
+}
 if (Test-Path -LiteralPath $vc) {
   Get-ChildItem -LiteralPath $vc -Filter "*.dll" | ForEach-Object { Copy-Item -LiteralPath $_.FullName (Join-Path $res "python") -Force }
   Write-Output "vc runtime: $((Get-ChildItem -LiteralPath $vc -Filter '*.dll').Count) DLLs beside python.exe"

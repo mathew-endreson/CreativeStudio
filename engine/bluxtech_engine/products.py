@@ -9,7 +9,7 @@ import time
 import unicodedata
 from pathlib import Path
 
-from . import config, store
+from . import assetlib, config, store
 from .jobs import JobFailed
 from .store import B, NotFound, jdump, jload
 
@@ -110,7 +110,8 @@ def slugify(name):
 
 
 def create_product(spec):
-    """Write _hyperframes/<slug>_src/product.json for a folder of finished ads (and the product's pictures)."""
+    """Write _hyperframes/<slug>_src/product.json for a folder of finished ads (and the product's pictures, which
+    the pictures job puts into <slug>_src/img, the product's asset folder)."""
     slug = slugify(spec.slug or spec.name)
     if not B.ID_RE.match(slug):
         raise ValueError(f"'{slug}' is not a valid slug (letters, digits, dashes)")
@@ -141,6 +142,7 @@ def create_product(spec):
          "product_dir": str(pdir), "ads_dir": str(Path(spec.ads_dir).expanduser()) if spec.ads_dir else str(pdir / "Ads"),
          "name_pattern": spec.name_pattern, "id_prefix": slug, "fps": 30, "sources": sources,
          "beats_file": f"beats_{slug}_src.json", "project_assets": [], "place": True, "gpt_cap": spec.gpt_cap,
+         "asset_lib": assetlib.PRODUCT_LIB, **({"asset_bottom": spec.asset_bottom} if spec.asset_bottom else {}),
          "offers": [o.model_dump() for o in spec.offers], "duplicates": list(spec.duplicates),
          "pictures": pictures, "created": time.strftime("%Y-%m-%dT%H:%M:%S"), "created_by": "bluxtech-studio"}
     (d / "work").mkdir(parents=True)
@@ -150,50 +152,109 @@ def create_product(spec):
     return slug, pictures
 
 
+def _stem(text, fallback):
+    return re.sub(r"[^a-z0-9]+", "-", unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode("ascii")
+                  .lower()).strip("-") or fallback
+
+
+def _rel(d, p):
+    try:
+        return Path(p).resolve().relative_to(Path(d).resolve()).as_posix()
+    except ValueError:
+        return str(p)
+
+
+def has_alpha(path):
+    """A transparent background (asset_lib.py's own test: >= 2 % of the pixels see-through). Unknown -> True:
+    asset_lib.py index flags it NO-ALPHA anyway."""
+    try:
+        import numpy as np
+        from PIL import Image
+        with Image.open(path) as im:
+            if "A" not in im.getbands() and "transparency" not in im.info:
+                return False
+            a = np.asarray(im.convert("RGBA"))[..., 3]
+        return bool((a < 250).mean() >= 0.02)
+    except Exception:
+        return True
+
+
 def pictures_job(ctx, job, spec):
-    """The product's own pictures: a white-background packshot through cutout_product.py --symmetric (it becomes
-    the project's jar), offer photos through offer_cutout.py (RAW files through rw2_preview.py first), illustrations
-    copied as they are. Each becomes a project asset copied into every mix."""
+    """The product's pictures -> its asset folder (<slug>_src/img), indexed for the skill's asset_lib.py.
+
+    Each picture the user gave (product.json `pictures`, once): a white-background packshot is cut out with
+    cutout_product.py --symmetric (the jar), an offer photo with offer_cutout.py, any other picture copied as it is
+    when it has a transparent background, else cut out with cutout_product.py (RAW files go through rw2_preview.py
+    first). Then `asset_lib.py index` writes the folder's library.json, and product.json gets `asset_lib` (and
+    `place`, so batch.py build places the pictures). The keywords are Claude's: the graphics stage looks at every
+    picture that has none yet. Remixes need no project assets or cutouts any more (Nov 26 2026)."""
     d, P, _ = store.product(job["slug"])
     py, S = config.skill_python(), config.SCRIPTS
-    assets = {a["to"]: a for a in P.get("project_assets", [])}
+    if not P.get("asset_lib"):
+        P["asset_lib"] = assetlib.PRODUCT_LIB
+    folder = assetlib.product_folder(d, P)
+    folder.mkdir(parents=True, exist_ok=True)
+    pics = P.get("pictures", [])
+    packshots = sum(p.get("tag") == "packshot" for p in pics)
     made = []
-    for i, pic in enumerate(P.get("pictures", [])):
+    for i, pic in enumerate(pics):
+        if pic.get("done") and (d / pic["done"]).exists():
+            continue
         src = Path(pic["file"])
+        tag = pic.get("tag") or "illustration"
+        stem = _stem(pic.get("label") or src.stem, f"pic{i + 1}")
+        if tag == "packshot":
+            out = folder / ("jar.png" if packshots == 1 else f"jar-{stem}.png")
+        elif tag == "offer":
+            out = folder / f"offer-{stem}.png"
+        else:
+            keep = src.suffix.lower() in (".png", ".webp") and src.exists() and has_alpha(src)
+            out = folder / f"{stem}{src.suffix.lower() if keep else '.png'}"
+        if out.exists() and not pic.get("done"):
+            pic["done"] = _rel(d, out)     # made by an earlier run of this job
+            continue
         if not src.exists():
             ctx.log("error", f"missing: {src}")
             continue
         if src.suffix.lower() == ".rw2":
-            jpg = d / "img" / f"{src.stem}.jpg"
+            jpg = d / "work" / f"{src.stem}.jpg"            # not in the asset folder: a JPG there is listed NO-ALPHA
             ctx.log("sys", f"$ rw2_preview.py {src.name}")
             if ctx.spawn([py, str(S / "rw2_preview.py"), str(src), str(jpg)]) != 0:
                 ctx.log("error", f"rw2_preview failed on {src.name}")
                 continue
             src = jpg
-        if pic["tag"] == "packshot":
-            out, to = d / "img" / "jar.png", "assets/img/jar.png"
+        if tag == "packshot":
             ctx.log("sys", f"$ cutout_product.py {src.name} --symmetric")
             code = ctx.spawn([py, str(S / "cutout_product.py"), str(src), str(out), "--symmetric"])
-        elif pic["tag"] == "offer":
-            stem = re.sub(r"[^a-z0-9]+", "-", (pic.get("label") or src.stem).lower()).strip("-") or f"offer{i}"
-            out, to = d / "img" / f"offer-{stem}.png", f"assets/img/offer-{stem}.png"
+        elif tag == "offer":
             ctx.log("sys", f"$ offer_cutout.py {src.name}")
             code = ctx.spawn([py, str(S / "offer_cutout.py"), str(src), str(out)])
-        else:
-            stem = re.sub(r"[^a-z0-9]+", "-", (pic.get("label") or src.stem).lower()).strip("-") or f"pic{i}"
-            out, to = d / "img" / f"{stem}{src.suffix.lower()}", f"assets/img/{stem}{src.suffix.lower()}"
+        elif out.suffix.lower() == src.suffix.lower() and src.suffix.lower() in (".png", ".webp"):
             import shutil
             shutil.copy2(src, out)
             code = 0
+        else:
+            ctx.log("sys", f"$ cutout_product.py {src.name} (no transparent background)")
+            code = ctx.spawn([py, str(S / "cutout_product.py"), str(src), str(out)])
         if code != 0 or not out.exists():
-            ctx.log("error", f"{pic['tag']} {src.name}: exit {code}")
+            ctx.log("error", f"{tag} {src.name}: exit {code}")
             continue
-        assets[to] = {"from": f"img/{out.name}", "to": to, "tag": pic["tag"], "label": pic.get("label", "")}
-        made.append(to)
-    P["project_assets"] = list(assets.values())
+        pic["done"] = _rel(d, out)
+        made.append(out.name)
     jdump(d / "product.json", P)
-    ctx.log("sys", f"project assets: {', '.join(made) or 'none'}")
-    return {"assets": made}
+    ctx.log("sys", f"$ asset_lib.py index {store.rel(folder)}")
+    if ctx.spawn(assetlib.index_cmd(folder)) != 0:
+        raise JobFailed("asset_lib.py index failed")
+    d, P, _ = store.product(job["slug"])                    # re-read, in case the user changed it meanwhile
+    if not P.get("asset_lib") or P.get("place") is not True:
+        P["asset_lib"] = P.get("asset_lib") or assetlib.PRODUCT_LIB
+        P["place"] = True                                   # asset beats need asset_lib.py place at build
+        jdump(d / "product.json", P)
+    lib = assetlib.product_lib(d, P)
+    n = assetlib.counts(lib)
+    ctx.log("sys", f"{n['pictures']} picture(s) in {store.rel(folder)}, {n['usable']} usable, {n['untagged']} without "
+                   f"keywords yet; new: {', '.join(made) or 'none'}")
+    return {"pictures": n["pictures"], "usable": n["usable"], "untagged": n["untagged"], "new": made}
 
 
 # ------------------------------------------------------------------ build: proposals -> mixes
@@ -220,21 +281,23 @@ def commit_proposals(slug, ids):
     return done
 
 
-def cut_work(slug, ids):
-    """Frames the cutouts of these mixes still need (for the ETA)."""
-    d, P, M = store.product(slug)
-    plan, _ = store.skill(B.plan_cuts, d, P, M, ids, all_gfx=True)
-    return sum(p["frames"] for p in plan or []), plan or []
-
-
 # ------------------------------------------------------------------ results
 
-def beat_lines(spec):
+def beat_lines(spec, notes=None, mid=None):
+    """The built mix's assets for the UI. `label` = the words he says on it (graphics_notes.json), or for a beat
+    from before Nov 26 2026 its old label; a beat with no picture was dropped by remix_broll.py."""
+    said = [n for n in (notes or {}).get("beats", []) if isinstance(n, dict) and n.get("mix") == mid]
     out = []
     for b in spec.get("beats", []):
-        words = " ".join(re.sub(r"<[^>]+>", "", l.get("html", "")) for l in b.get("labels", []))
-        out.append({"in": b.get("in"), "out": b.get("out"), "side": b.get("side"), "graphic": b.get("lib") or b.get("kind"),
-                    "label": words.strip(), "check": b.get("check")})
+        words = " ".join(re.sub(r"<[^>]+>", "", l.get("html", "")) for l in b.get("labels", []) if isinstance(l, dict))
+        if b.get("lib"):
+            near = [n for n in said if n.get("graphic") == b["lib"] and isinstance(n.get("t"), (int, float))
+                    and b.get("in", 0) - 1 <= n["t"] <= b.get("out", 0) + 1]
+            if near:
+                words = min(near, key=lambda n: abs(n["t"] - b.get("in", 0))).get("words") or words
+        out.append({"in": b.get("in"), "out": b.get("out"), "side": b.get("side") or "C",
+                    "graphic": b.get("lib") or b.get("kind"), "label": words.strip(),
+                    "check": b.get("check") or ("" if b.get("img") else "dropped: no picture (old disc / jar style)")})
     return out
 
 
@@ -249,11 +312,63 @@ def result(d, P, M, mid):
     notes = jload(d / "work" / "graphics_notes.json") or {}
     return {**st, "angle": M[mid].get("angle", ""), "segs": M[mid].get("segs", []), "body": M[mid].get("body", []),
             "cta": M[mid].get("cta"), "build": build, "check": check, "report": report,
-            "beats": beat_lines(beats) if beats else [], "revision": rev,
+            "beats": beat_lines(beats, notes, mid) if beats else [], "revision": rev,
             "gpt_drawings": notes.get("gpt_drawings", []), "unsure": notes.get("unsure", []),
+            "missing": notes.get("missing", []),
             "snaps": [f for f in (check or {}).get("files", []) if f.endswith((".png", ".jpg"))],
             "sheets": [n for n in ("final_sheet.jpg", "joins_sheet.jpg") if (proj / ".work" / n).exists()],
-            "warnings": (build or {}).get("place_warnings", []) + (build or {}).get("no_cutout", [])}
+            "warnings": list((build or {}).get("place_warnings", []))}
+
+
+# ------------------------------------------------------------------ the product's pictures (its asset folder)
+
+def pictures(slug):
+    """The product's asset folder and library for the UI: every picture with its keywords and whether it can be
+    shown, the pictures given that are not processed yet, and asset_bottom."""
+    d, P, _ = store.product(slug)
+    lib = assetlib.product_lib(d, P)
+    own = bool(P.get("asset_lib"))
+    return {"dir": str(assetlib.product_folder(d, P)) if own else None, "lib": str(lib), "own_library": own,
+            "assets": assetlib.public(lib), "counts": assetlib.counts(lib), "asset_bottom": P.get("asset_bottom"),
+            "pending": [p for p in P.get("pictures", []) if not p.get("done")]}
+
+
+def add_pictures(slug, spec):
+    """More pictures for a product (and its asset_bottom). Returns whether the pictures job has work to do."""
+    d, P, _ = store.product(slug)
+    pdir = Path(P.get("product_dir") or d)
+    pics = P.setdefault("pictures", [])
+    known = {str(Path(p["file"])).lower() for p in pics}
+    added = 0
+    for f in spec.files:
+        full = Path(f.file).expanduser()
+        full = full if full.is_absolute() else pdir / full
+        if not full.is_file():
+            raise ValueError(f"file not found: {f.file}")
+        if full.suffix.lower() not in IMAGE:
+            raise ValueError(f"not a picture: {full.name}")
+        if str(full).lower() in known:
+            continue
+        pics.append({"file": str(full), "tag": f.tag, "label": f.label, "note": f.note})
+        known.add(str(full).lower())
+        added += 1
+    if spec.clear_asset_bottom:
+        P.pop("asset_bottom", None)
+    elif spec.asset_bottom:
+        P["asset_bottom"] = spec.asset_bottom
+    P["asset_lib"] = P.get("asset_lib") or assetlib.PRODUCT_LIB
+    jdump(d / "product.json", P)
+    return added
+
+
+def picture_file(slug, name):
+    """A file of the product's asset folder (its thumbnails in the UI)."""
+    d, P, _ = store.product(slug)
+    folder = assetlib.product_folder(d, P)
+    p = folder / name
+    if Path(name).name != name or p.suffix.lower() not in (".png", ".webp", ".jpg", ".jpeg") or not p.is_file():
+        raise NotFound(name)
+    return p
 
 
 def results(slug):

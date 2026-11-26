@@ -1,7 +1,7 @@
 """Where things are, for the two ways the engine runs.
 
 dev        from this source tree (bluxtech-studio/engine): the workspace is the SH-101126 project root, with its
-           .claude/skills/camel-gpt, _hyperframes and batch folders; python, node and ffmpeg come from PATH; the UI
+           .claude/skills/bluxstudio-skill, _hyperframes and batch folders; python, node and ffmpeg come from PATH; the UI
            is desktop/dist.
 installed  started by the BluxTech Studio desktop app from its resources folder (--resources): the workspace is a
            folder the user owns (Documents\\BluxTech Studio by default), laid out like the project root by
@@ -74,7 +74,7 @@ def init(workspace=None, resources=None, port=None, auth=True, data=None):
     elif RESOURCES and (RESOURCES / "assets" / "library.json").exists():
         GPT_DIR = ROOT / "assets"
     HF = ROOT / "_hyperframes"
-    SKILL = ROOT / ".claude" / "skills" / "camel-gpt"
+    SKILL = ROOT / ".claude" / "skills" / "bluxstudio-skill"
     SCRIPTS = SKILL / "scripts"
     BATCH = SCRIPTS / "batch.py"
     if port is not None:

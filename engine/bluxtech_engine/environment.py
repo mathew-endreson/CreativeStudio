@@ -78,7 +78,7 @@ def check():
     add("ffprobe", "FFprobe", which("ffprobe"), which("ffprobe") or "not found on PATH")
     add("node", "Node.js", which("node"), which("node") or "not found on PATH (HyperFrames needs it)")
     add("hyperframes", "HyperFrames renderer", hyperframes_cli(), str(hyperframes_cli() or config.HF / "node_modules"), fix="setup")
-    add("skill", "camel-gpt skill", (config.SKILL / "SKILL.md").exists(), str(config.SKILL), fix="setup")
+    add("skill", "bluxstudio-skill", (config.SKILL / "SKILL.md").exists(), str(config.SKILL), fix="setup")
     dz = config.ROOT / ".claude" / "skills" / "darijadz"
     add("darijadz", "darijadz skill (Claude corrects Whisper's Darija, darija_lint checks it)",
         (dz / "scripts" / "darija_lint.py").exists(), str(dz), required=False, fix="setup")
@@ -100,7 +100,7 @@ def check():
             config.claude_bin() or "not found: install Claude Code and run `claude` once, or switch to the API key runner")
     lib_ok = (config.GPT_DIR / "library.json").exists()
     add("gpt", "Illustration library (the orange health pictures)", lib_ok,
-        str(config.GPT_DIR) if lib_ok else "no library: ads get the jar and the discs only", required=False, fix="setup")
+        str(config.GPT_DIR) if lib_ok else "no library: ads get no pictures", required=False, fix="setup")
     codex = config.codex_bin()
     add("codex", "GPT drawing tool (the ChatGPT / Codex desktop app)", codex,
         codex or "not installed: new pictures are not drawn, the library is used as it is", required=False)
@@ -128,7 +128,7 @@ def init_workspace():
     config.ROOT.mkdir(parents=True, exist_ok=True)
     config.HF.mkdir(exist_ok=True)
     (config.ROOT / "Projects").mkdir(exist_ok=True)
-    for name in ("camel-gpt", "darijadz"):
+    for name in ("bluxstudio-skill", "darijadz"):
         skill_src, dst = res / "skill" / name, config.ROOT / ".claude" / "skills" / name
         stamp = dst / ".bluxtech-version"
         if skill_src.is_dir():
@@ -138,6 +138,11 @@ def init_workspace():
                     shutil.rmtree(dst)
                 shutil.copytree(skill_src, dst)
                 stamp.write_text(config.VERSION, encoding="utf-8")
+    # the edit skill was called camel-gpt until Nov 26 2026: drop the copy an older app version laid down
+    # (only a stamped one, i.e. ours; a camel-gpt the user put there themselves stays)
+    old = config.ROOT / ".claude" / "skills" / "camel-gpt"
+    if (old / ".bluxtech-version").exists():
+        shutil.rmtree(old)
     # the illustration library, when this PC has no GPT asset tool of its own (replaced on every new app version)
     lib_src, lib_dst = res / "assets", config.ROOT / "assets"
     if config.GPT_DIR == lib_dst and (lib_src / "library.json").exists():

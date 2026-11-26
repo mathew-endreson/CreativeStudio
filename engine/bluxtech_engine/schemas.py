@@ -26,8 +26,9 @@ class Busy(Strict):
     a: float
     b: float
     side: Literal["L", "R", "T", "both", "full"] = Field(
-        description="where a graphic behind the speaker would clash: L / R side slot, T above the head, both sides "
-                    "(a full-width title), or full (full-screen B-roll, the phone-mockup CTA)")
+        description="where it is: full = full-screen B-roll or the phone-mockup CTA (no asset then); L / R / both = a "
+                    "photo card at chest height on that side or across (it blocks the assets, which sit there by the "
+                    "caption); T = a title at the top of the frame (noted, it does not block an asset)")
     what: str = Field(description="what is burned in there: 'two-line orange title', 'photo card', 'lab footage' ...")
 
 
@@ -115,7 +116,7 @@ class Analysis(Strict):
 
 # ------------------------------------------------------------------ work/proposed.json (stage B)
 # What Claude proposes. The app gives each ad its id, name and file name (the numbering is mechanical), works
-# out its length, its cutout cost and its cut checks with batch.py, and merges it into proposals.json.
+# out its length and its cut checks with batch.py, and merges it into proposals.json.
 
 class PSeg(Strict):
     src: str
@@ -129,13 +130,14 @@ class PSeg(Strict):
 
 
 class Graphic(Strict):
+    """An asset the ad would get (the product's own pictures, animated in front of the speaker by the caption).
+    Older proposals.json files also hold disc / pack / offer graphics: they are read as they are, never validated."""
     on: str = Field(description="the words it lands on, as said")
-    kind: Literal["disc", "pack", "offer", "library", "missing"] = Field(
-        description="disc = a line-icon disc of remix.md; pack = the product jar; offer = the offer photo; library = "
-                    "a picture that is in the GPT library; missing = a picture GPT would have to draw")
-    what: str = Field(description="the disc kind (lab, shield, people ...), 'jar', the library picture id, or for "
-                                  "missing the concept to draw")
-    label: str = Field("", description="the on-screen label, in caption spelling")
+    kind: Literal["library", "missing"] = Field(
+        description="library = one of the product's pictures; missing = an idea no picture shows yet (the user "
+                    "would upload one)")
+    what: str = Field(description="the picture's library id, or for missing the idea to show")
+    label: str = Field("", description="leave empty: assets carry no label (the caption is the label)")
     existing: bool = Field(False, description="this beat is already written in the product's beats file")
 
 
@@ -147,7 +149,7 @@ class ProposedAd(Strict):
     body: list[int] = Field(min_length=1, description="indices of the segments that carry B-roll; never 0. The CTA's "
                                                       "index goes here too only when body and CTA are one take")
     cta: Optional[int] = Field(None, description="index of the CTA segment (its own segment, last)")
-    hook_beats: bool = Field(False, description="segment 0 is a hook lifted from a body: it keeps its beats and cutout")
+    hook_beats: bool = Field(False, description="segment 0 is a hook lifted from a body: it keeps its beats")
     angle: str = Field(description="the ad's angle in one line")
     why: str = Field(description="why hook, body and CTA read as one argument a viewer can follow")
     risks: list[str] = Field([], description="what could go wrong on screen or in the argument; empty if nothing")

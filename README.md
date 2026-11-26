@@ -1,12 +1,12 @@
 # BluxTech Studio
 
-A Windows desktop application around the `/camel-gpt` ad pipeline: talking-head footage in, finished Algerian-Darija
-video ads out (captions, hook / body / CTA transitions, graphics behind the speaker, −15 LUFS renders), with accounts
+A Windows desktop application around the `/bluxstudio-skill` ad pipeline: talking-head footage in, finished Algerian-Darija
+video ads out (captions, hook / body / CTA transitions, the product's own pictures animated in front of the speaker, −15 LUFS renders), with accounts
 and licensing in the cloud and every render on the user's own PC.
 
 ```
 bluxtech-studio/
-  engine/      Python 3.12: FastAPI + job queue + the Claude runners (the AI engine; drives the camel-gpt skill)
+  engine/      Python 3.12: FastAPI + job queue + the Claude runners (the AI engine; drives the bluxstudio-skill)
   desktop/     React + TypeScript UI (Vite, Tailwind) and the Tauri 2 shell (src-tauri/)
   supabase/    Postgres schema + row-level security, the `license` Edge Function (activation, device limit, license token)
   installer/   scripts that stage the runtime (Python, Node, HyperFrames, FFmpeg) and build the NSIS installer
@@ -14,13 +14,13 @@ bluxtech-studio/
 ```
 
 `ARCHITECTURE.md` explains how the pieces fit. The editing rules themselves live in the skill
-(`../.claude/skills/camel-gpt`): the app never hard-codes a style rule, it runs the skill's scripts and sends Claude to
+(`../.claude/skills/bluxstudio-skill`): the app never hard-codes a style rule, it runs the skill's scripts and sends Claude to
 the skill for the judgment steps.
 
 ## Run it from source (dev)
 
 Needs: Python 3.12 with the skill's packages (numpy, OpenCV, Pillow, faster-whisper), Node.js, FFmpeg on PATH, the
-project root with `_hyperframes/` (HyperFrames installed) and `.claude/skills/camel-gpt`.
+project root with `_hyperframes/` (HyperFrames installed) and `.claude/skills/bluxstudio-skill`.
 
 ```powershell
 cd bluxtech-studio
@@ -55,7 +55,7 @@ asset matcher read real Darija. A project's analysis waits for the correction; a
 
 | runner | what makes the Claude calls | for |
 |---|---|---|
-| `cli` | the `claude.exe` installed on the PC and its own claude.ai login | the owner's machine (how `/camel-gpt` runs by hand) |
+| `cli` | the `claude.exe` installed on the PC and its own claude.ai login | the owner's machine (how `/bluxstudio-skill` runs by hand) |
 | `sdk` | the Claude Agent SDK, whose pip package bundles the Claude Code runtime, with the user's Anthropic API key (sealed with Windows DPAPI) | the shipped product |
 
 Anthropic does not allow third-party products to offer claude.ai logins, so an installed BluxTech Studio runs on

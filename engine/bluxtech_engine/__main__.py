@@ -21,7 +21,7 @@ def free_port():
 def main():
     ap = argparse.ArgumentParser(prog="bluxtech_engine", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--workspace", help="folder with .claude/skills/camel-gpt and _hyperframes (default: the project root in dev)")
+    ap.add_argument("--workspace", help="folder with .claude/skills/bluxstudio-skill and _hyperframes (default: the project root in dev)")
     ap.add_argument("--resources", help="the desktop app's resources folder (switches to installed mode)")
     ap.add_argument("--data", help="where the engine keeps its database (default: %%LOCALAPPDATA%%\\BluxTech Studio)")
     ap.add_argument("--port", type=int, default=None, help="0 = any free port (default 8766)")

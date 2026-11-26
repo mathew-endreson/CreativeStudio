@@ -5,46 +5,44 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class Loose(BaseModel):
-    """Beats carry template-specific fields (ghosts, fill, x, top...): keep what we do not know."""
+    """Keep what we do not know: place adds img / w / h / x / top, and beats files from before Nov 26 2026 carry
+    the old disc / jar fields (labels, fill, ghosts, badge, pops ...). Those files still load; build drops such beats."""
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
 
 # ------------------------------------------------------------------ beats_<slug>_src.json (stage C, D, E)
 
-class BeatLabel(Loose):
-    t: float = Field(description="when this label replaces the previous one (source seconds)")
-    html: str = Field(min_length=1, description="caption spelling; <em> = the gold word; <em class=\"cnt\">0</em> counts to `count`")
-    count: Optional[float] = None
-    countAt: Optional[float] = None
-    countDur: Optional[float] = None
-
-
-class Badge(Loose):
-    kind: Literal["check", "gem", "ice", "shield"]
-    t: float
+ASSET = "asset"
+ASSET_SIDES = ("C", "L", "R")
 
 
 class Beat(Loose):
+    """One of the product's pictures, animated in front of the speaker by the caption (references/remix.md,
+    "Remix + animated assets in the body"). Times are in the source's own time."""
     src: str = Field(description="source key (g5, t1 ...): the beat is in that source's own time")
-    kind: str = Field(description="pack (jar, offer photo or a library picture via `lib`), or a disc kind of remix.md")
-    side: Literal["L", "R", "T"]
-    in_: float = Field(alias="in", description="start, >= 0.20 s inside the body segment that uses it")
-    out: float = Field(description="end, >= 0.25 s before that segment ends")
-    lib: Optional[str] = Field(None, description="library picture id; asset_lib.py place resolves img/w/h")
-    img: Optional[str] = None
-    w: Optional[int] = None
-    h: Optional[int] = None
-    x: Optional[int] = None
-    top: Optional[int] = None
-    key: Optional[float] = None
-    fill: Optional[float] = None
-    ghosts: Optional[float] = None
-    keys: list[float] = []
-    pops: list[float] = []
-    breathe: list[float] = []
-    shake: list[float] = []
-    labels: list[BeatLabel] = []
-    badge: Optional[Badge] = None
+    kind: str = Field(ASSET, description='"asset": a picture of the product\'s library. (Older files hold disc / jar '
+                                         "kinds: they show nothing any more and remix_broll.py drops them.)")
+    lib: Optional[str] = Field(None, description="the picture's id in the product's library.json; asset_lib.py place "
+                                                 "fills img / w / h / x / top from it")
+    side: str = Field("C", description='"C" (centred by the caption); "L" or "R" only where his hands or the product '
+                                       "are in the way")
+    in_: float = Field(alias="in", description="start, about 0.25 s before the first word that names it; >= 0.20 s "
+                                               "inside the body segment that uses it")
+    out: float = Field(description="end (it shrinks away from out - 0.30); >= 0.25 s before that segment ends")
+    keys: list[float] = Field([], description="pop + glint on the key word (the picture's motion shine or none)")
+    breathe: list[float] = Field([], description="slow swell on the word (motion breathe: lungs, breath, sleep)")
+    shake: list[float] = Field([], description="shudder on the word (motion shake: cough, pain)")
+    bottom: Optional[float] = Field(None, description="the picture's bottom edge in px, only where this shot's "
+                                                    "burned-in caption sits higher than the default")
+    size: Optional[float] = Field(None, description="max side in px when it must be smaller than the default 380")
+    x: Optional[float] = Field(None, description="left edge in px, only to move it by hand")
+    mirror: Optional[bool] = None
+
+    def is_asset(self):
+        return self.kind == ASSET and bool(self.lib)
+
+    def key_times(self):
+        return list(self.keys) + list(self.breathe) + list(self.shake)
 
 
 class Sfx(Loose):
@@ -62,10 +60,10 @@ class BeatsFile(Loose):
 
 class GraphicsNote(Loose):
     mix: str
-    t: float
-    side: str
-    graphic: str
-    words: str
+    t: float = Field(description="in the mix's own time")
+    side: str = "C"
+    graphic: str = Field(description="the picture's library id")
+    words: str = Field(description="what he says on it")
 
 
 class Drawing(Loose):
@@ -73,8 +71,17 @@ class Drawing(Loose):
     prompt: str = ""
 
 
+class Missing(Loose):
+    """An idea he names that no picture of the library shows: the user uploads one (or asks GPT to draw it)."""
+    concept: str
+    words: str = ""
+    src: str = ""
+    t: Optional[float] = None
+
+
 class GraphicsNotes(Loose):
     beats: list[GraphicsNote] = []
+    missing: list[Missing] = []
     gpt_drawings: list[Drawing] = []
     unsure: list[str] = []
 
@@ -98,9 +105,9 @@ class FreshMarks(BaseModel):
 
 class FreshBeat(Loose):
     t: float
-    side: str
-    graphic: str
-    words: str
+    side: str = "C"
+    graphic: str = Field(description="the picture's library id")
+    words: str = Field(description="what he says on it")
 
 
 class FreshResult(Loose):
@@ -111,8 +118,9 @@ class FreshResult(Loose):
     size_mb: Optional[float] = None
     black_frames: list = []
     captions: int = 0
-    beats: list[FreshBeat] = []
-    library_pictures: list[str] = []
+    beats: list[FreshBeat] = Field([], description="every asset of index.html's ILLUS slot, in time order")
+    library_pictures: list[str] = Field([], description="the library ids used")
+    missing: list[Missing] = Field([], description="ideas he names that no picture shows, for the user to upload")
     gpt_drawings: list[Drawing] = []
     unsure: list[str] = []
     notes: str = ""
@@ -149,5 +157,26 @@ class NewProduct(BaseModel):
     offers: list[NewOffer] = []
     duplicates: list[str] = []
     gpt_cap: int = 3
+    asset_bottom: Optional[int] = Field(None, ge=600, le=1800, description="the pictures' bottom edge in px when this "
+                                        "product's burned-in captions sit high (default 1260)")
     name_pattern: str = "{name} Mix{nn} - {label} - {name_ar}.mp4"
     slug: Optional[str] = None
+
+
+# ------------------------------------------------------------------ more pictures for a product (asset folder)
+
+class NewPicture(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    file: str = Field(description="full path, or a file name inside product_dir")
+    tag: Literal["packshot", "offer", "illustration"] = Field(
+        "illustration", description="packshot = the jar on a white background (cut out with --symmetric); offer = the "
+                                    "offer photo; illustration = any other picture (a herb, a moon, an organ)")
+    label: str = ""
+    note: str = ""
+
+
+class AddPictures(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    files: list[NewPicture] = []
+    asset_bottom: Optional[int] = Field(None, ge=600, le=1800)
+    clear_asset_bottom: bool = False

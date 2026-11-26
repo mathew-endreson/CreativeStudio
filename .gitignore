@@ -14,3 +14,4 @@ installer/downloads/
 *.local
 supabase/keys/
 .claude/scheduled_tasks.lock
+installer/vcredist/

@@ -4,7 +4,7 @@ Same judgment stages as claude_runner.one_run_cli, but the Claude Code runtime c
 (no install on the machine) and the credential is the user's Anthropic API key (Settings, sealed with DPAPI). This is
 the runner a shipped BluxTech Studio uses: Anthropic does not allow claude.ai logins inside third-party products.
 
-    ClaudeAgentOptions(cwd=workspace, setting_sources=["project"])   loads .claude/skills/camel-gpt from the workspace
+    ClaudeAgentOptions(cwd=workspace, setting_sources=["project"])   loads .claude/skills/bluxstudio-skill from the workspace
     permission_mode="acceptEdits" + can_use_tool -> deny                edits inside the workspace, nothing that would
                                                                         ask a question (same as --permission-prompts none)
     tools / allowed_tools                                               only what the stage lists

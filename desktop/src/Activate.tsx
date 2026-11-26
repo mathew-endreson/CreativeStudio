@@ -27,7 +27,7 @@ export default function Activate({ info, user, license, onActivated }: { info: A
     none: "This account has no license yet.",
   };
   return (
-    <div className="grid min-h-full place-items-center bg-bg p-6">
+    <div className="grid min-h-full place-items-center p-6">
       <Card className="w-[460px] p-6 shadow-hud">
         <div className="text-[17px] font-semibold tracking-tight">Activate this device</div>
         <p className="mt-1 text-ink-2">{reason[license.reason] ?? license.reason}</p>

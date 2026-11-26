@@ -20,7 +20,7 @@ from . import config, stages, store
 from .jobs import JobFailed
 
 MAX_FIXES = 2
-SYSTEM = ("You are running headless inside BluxTech Studio, a desktop app that drives the camel-gpt skill. Nobody can "
+SYSTEM = ("You are running headless inside BluxTech Studio, a desktop app that drives the bluxstudio-skill. Nobody can "
           "answer a question during this run: decide, and say what you were unsure of in your last message. "
           "Run one command per shell call, starting with python, ffmpeg, ffprobe or npx hyperframes: no pipes, no "
           "cd, no variable assignments (PYTHONIOENCODING is already utf-8). Paths with spaces go in double quotes. "
@@ -73,7 +73,7 @@ def command(stage, sid, resume, add_dirs):
 
 def outside_dirs(P):
     out = []
-    for key in ("product_dir", "ads_dir"):
+    for key in ("product_dir", "ads_dir", "assets_dir"):        # assets_dir: a fresh edit's pictures
         p = P.get(key)
         if p and Path(p).is_dir():
             try:

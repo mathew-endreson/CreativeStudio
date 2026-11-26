@@ -84,7 +84,7 @@ function AdCard({ slug, ad, labels, cap, onChange }: { slug: string; ad: Proposa
     <Card className={cx("p-3 ring-2", ad.picked ? "ring-sel" : "ring-transparent", rejected && "opacity-60")}>
       <div className="flex flex-wrap items-center gap-2">
         {!rejected && (
-          <label className="flex h-[26px] cursor-pointer items-center gap-2 rounded-[6px] border border-line bg-surface-2 px-2 text-[12.5px] font-medium has-[:checked]:border-sel has-[:checked]:bg-sel/15 has-[:checked]:text-sel" title="Tick to build this ad">
+          <label className="flex h-[26px] cursor-pointer items-center gap-2 glass-2 rounded-[8px] px-2 text-[12.5px] font-medium has-[:checked]:border-sel has-[:checked]:bg-sel/15 has-[:checked]:text-sel" title="Tick to build this ad">
             <input type="checkbox" className="h-3.5 w-3.5" checked={ad.picked} disabled={!!ad.exists} onChange={(e) => patch({ picked: e.target.checked })} />
             Build
           </label>

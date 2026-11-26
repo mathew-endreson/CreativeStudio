@@ -23,7 +23,7 @@
 │                             fresh edits (one footage -> one ad)                  │
 │    license.py · settings.py · environment.py                                     │
 ├──────────────────────────── media engine ───────────────────────────────────────┤
-│  .claude/skills/camel-gpt/scripts  (the skill: the only place with style rules) │
+│  .claude/skills/bluxstudio-skill/scripts  (the skill: the only place with style rules) │
 │    batch.py prepare/transcribe/scan/cut/build/check/render · new_project.py ·    │
 │    transcribe.py (faster-whisper) · asset_lib.py (GPT library) · finalize.py    │
 │  FFmpeg/FFprobe · HyperFrames (Node, Chrome) · Whisper · u2net matte             │
@@ -58,6 +58,13 @@ on all of them, and the same build runs in a browser for development. The Tauri 
 origin the Tauri API it needs (the native file pickers); everything else (open in Explorer, folder listing,
 thumbnails) goes through the engine.
 
+The look is DaVinci Resolve's graphite workspace built from liquid glass: a slim title bar with the page name in the
+middle, a glass Libraries sidebar, and Resolve's page bar along the bottom (Projects, Fresh edit, Assets, Settings,
+the active one lit amber, the one strong colour). All of it lives in three files: `desktop/src/index.css` (the
+tokens, the `.glass*` classes, the `.backdrop` gradient floor that `index.html` draws behind the app, and the
+reduced-transparency / reduced-motion fallbacks), `ui.tsx` (every primitive is a piece of glass) and `App.tsx`
+(the shell). Page files only compose the primitives, so a restyle never touches them.
+
 ## A judgment step, end to end
 
 1. The UI queues a job (`POST /api/products/{slug}/build`, `/fix`, `/revise`, `/api/fresh/{slug}/run` ...).
@@ -75,12 +82,15 @@ thumbnails) goes through the engine.
 
 **Remix (a product with finished ads):** New project → `prepare` / `transcribe` / `scan` → **analyze** (Claude:
 hook end, body, CTA, offer groups, busy windows, liftable lines) → **propose** (Claude: pairings that read as one
-argument) → the user ticks → `cut` (speaker matte per body range) → **graphics** (Claude: the B-roll in source time)
-→ `build` (joins, map_beats, place, remix_broll) → `check` (lint + snapshots) → `render` (+ finalize −15 LUFS) →
+argument) → the user ticks → `pictures` (the product's pictures in `<slug>_src/img`, indexed by `asset_lib.py
+index` into `img/library.json`) → **graphics** (Claude: keywords for new pictures, then the animated assets in source
+time; MISSING ideas are reported, GPT draws only on request) → `build` (joins, map_beats, place, remix_broll; no
+speaker cutout since the assets sit in front of him) → `check` (lint + snapshots) → `render` (+ finalize −15 LUFS) →
 Results, with **fix** (placement warnings) and **revise** (free-text feedback, same file name).
 
-**Fresh edit (one clean footage):** `new_project.py` → transcript → cutout → the user marks hook end / body / CTA on
-the timeline → **fresh** (Claude: SKILL.md steps 3–10, including the render) → the ad in `Edited Ads`.
+**Fresh edit (one clean footage):** `new_project.py` → transcript → cutout (for the particles and the route behind
+him) → the user marks hook end / body / CTA on the timeline → **fresh** (Claude: SKILL.md steps 3–10: the ad's asset
+folder indexed, keywords, `plan --lib`, `place --lib`, the render) → the ad in `Edited Ads`.
 
 ## Security model
 
@@ -103,7 +113,7 @@ the timeline → **fresh** (Claude: SKILL.md steps 3–10, including the render)
                  OpenCV import msvcp140*.dll, which a clean PC does not have)
   node\          portable Node.js 22            hyperframes\node_modules   HyperFrames 0.9.38
   ffmpeg\bin\    ffmpeg.exe, ffprobe.exe        models\                    u2net_human_seg.onnx (optional)
-  engine\        bluxtech_engine + prompts      skill\camel-gpt, skill\darijadz   the skills (copied into the workspace)
+  engine\        bluxtech_engine + prompts      skill\bluxstudio-skill, skill\darijadz   the skills (copied into the workspace)
   assets\        the illustration library (library.json, generated\, style\), copied into the workspace as
                  <workspace>\assets on a PC without the GPT asset tool; the skill reads it through GPT_ASSETS_PROJECT
                  and CAMEL_GPT_LIBRARY, which the engine sets for every child process

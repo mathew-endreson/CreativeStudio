@@ -3,7 +3,7 @@
 The embeddable Python ships a python312._pth file, and that file puts the interpreter in isolated mode (-I, which
 implies -P): sys.path then holds neither the script's folder (python script.py) nor the current folder (python -m
 package). We want the isolation (nothing from another Python on the customer's PC leaks in), but the engine starts
-with `python -m bluxtech_engine` from <resources>/engine, and the camel-gpt scripts import their siblings
+with `python -m bluxtech_engine` from <resources>/engine, and the bluxstudio-skill scripts import their siblings
 (batch.py -> transcribe, map_beats; asset_lib -> gpt_assets), so put those two entries back.
 
 Loaded at every start by bluxtech_paths.pth in Lib/site-packages (site runs `import` lines in .pth files).

@@ -1,8 +1,8 @@
-Use the camel-gpt skill: read `.claude/skills/camel-gpt/SKILL.md`, `.claude/skills/camel-gpt/references/remix.md` ("Remix + animated B-roll in the body" and "GPT library pictures in a remix") and `references/asset-library.md` first (skip what you already read in this session).
+Use the bluxstudio-skill: read `.claude/skills/bluxstudio-skill/SKILL.md`, `.claude/skills/bluxstudio-skill/references/remix.md` ("Remix + animated assets in the body" and "Assets in a remix (planning)") and `.claude/skills/bluxstudio-skill/references/asset-library.md` first (skip what you already read in this session).
 
-# Stage C: the graphics of {{name}} ({{name_ar}}) — mixes {{ids}}
+# Stage C: the assets of {{name}} ({{name_ar}}) — mixes {{ids}}
 
-The user ticked these proposals. The app added them to `{{src}}/mixes.json` and is cutting out the speaker. Your part is the B-roll: every body line of these mixes gets its graphic, in SOURCE time, in `{{output}}` (the shape of `_hyperframes/ghaba_src/beats_ghaba_src.json`: `{"_note", "beats": [...], "sfx": [...]}`). `batch.py build` then maps them into each mix with `map_beats.py`, places the library pictures against that mix's own cutout (`asset_lib.py place`) and writes the project with `remix_broll.py`. Nothing is built or rendered here.
+The user ticked these proposals and the app added them to `{{src}}/mixes.json`. Your part is the animated assets: the product's own pictures, each one in the body on the word that names it, in front of the speaker by the caption (`camel-style.md` §5). Write them in SOURCE time in `{{output}}` (`{"_note", "beats": [...], "sfx": [...]}`). `batch.py build` then maps them into each mix (`map_beats.py`), places the pictures (`asset_lib.py place --lib {{lib}}`: trimmed PNG, size, `x`, `top`) and writes the project (`remix_broll.py`). A remix needs no speaker cutout. Nothing is built or rendered here.
 
 ## Input
 
@@ -12,28 +12,37 @@ The mixes (segment index: source span [role] transcript):
 The sources, from `{{src}}/analysis.json` (its `lines` carry the clean wording `said` and the cut points):
 {{sources}}
 
-- {{beats_state}}. Keep every beat that is already there (other mixes use them) unless it is wrong; add what these mixes need. A beat another mix already uses on the same source range is reused as it is: do not write a second one for the same words.
-- Project assets available as `pack` pictures (`img`): {{assets}}.
-- Library pictures: `python .claude/skills/camel-gpt/scripts/asset_lib.py plan {{src}}/work/<k>_words.json --t-body <hook_end> --t-cta <cta_start> --remix --src <k> --matte none --busy <side:a-b ...> --out {{src}}/work/illus_<k>.json` per source these mixes use; read every "why" against the sentence (symptom vs relief, figurative words, false hits) before keeping a beat. `asset_lib.py fill {{src}}/work/illus_<k>.json --max {{gpt_cap}}` draws the MISSING concepts with GPT: at most {{gpt_cap}} drawings for this round, only concepts these ads really show, and look at every new picture (the result lists its path) before using it. If GPT is unavailable, say so and carry on with discs and the jar. A cap of 0 means this PC has no drawing tool: skip the fill and use the library as it is.
-- `python .claude/skills/camel-gpt/scripts/batch.py frames {{src}} <k> <first>-<last>` writes a strip of frames to `{{look}}/` when you need to see what is on screen.
+The product's pictures, in `{{img}}`, indexed in `{{lib}}` (the app ran `asset_lib.py index` just before this step){{bottom_note}}:
+{{pictures}}
 
-## Rules (remix.md)
+- {{beats_state}}.
+- `S` below is `.claude/skills/bluxstudio-skill/scripts`. Every `asset_lib.py` command takes `--lib {{lib}}`. Run commands from the project root with explicit paths (no `cd`).
 
-- One graphic per idea; alternate sides; at least 0.3 s between an exit and the next entry on the same side; nothing on a side during a burned-in title / card / full-screen B-roll there (`busy`); nothing in a hook segment unless the mix has `hook_beats`; nothing in the CTA.
-- Each beat sits at least 0.20 s after the start and ends at least 0.25 s before the end of the body segment that uses it: `map_beats.py` drops anything else, so a beat that straddles a cut never shows.
-- A body part, organ or symptom he names is a library picture (`kind: "pack"`, `lib: <id>`, `side`, `in`, `out`, `keys` / `breathe` / `shake`, `labels`; no `img`/`w`/`h`: place resolves them). Quantities, gifts, delivery, lab, origin stay discs (`lab`, `shield`, `people`, `honey`, `truck`, `gift`, `plant`, `research`, `seeds`, `oil`, `combo` ...). A honey quantity or the order line is the jar (`pack` with no `lib`; `ghosts` for a count). An offer photo is `pack` with its `img`.
-- Labels follow his words at that moment, in caption spelling (`camel-style.md` §2: digits, "إي بوكس"); `<em>` is the gold word; a counter only for a number he says (`<em class="cnt">0</em>` with `count`, `countAt`, `countDur`); percent labels wrapped as remix.md shows. Never claim what he does not say: no ratings, wilaya counts or organs he did not name.
-- `key` / `keys` / `pops` / `fill` land on the key word. `badge` (`check`, `gem`, `ice`, `shield`) only where it fits the claim.
-- `sfx`: a `pop.mp3` at .12–.16 on a picture's entry, at most 3 per body, never on a key word. The join whooshes are added by the template.
+## Do
+
+1. **Keywords first.** Read every picture marked NO KEYWORDS YET and write its keywords into one JSON in `{{src}}/work/` (asset-library.md §3: 6–15 Darija words or short phrases as Whisper spells them, most specific first, never a generic word alone; a few `ar` / `fr`; `motion` `breathe` for lungs / breathing / sleep, `shake` for cough / pain, else none; `concept` when one in `assets/concepts.json` fits). Then run `python S/asset_lib.py --lib {{lib}} setmany <that file>`. Fix a keyword that pulls the wrong picture the same way. A NOT USABLE picture is never planned: name it in `unsure` so the user can replace it with a PNG / WebP cut-out.
+2. **Plan each source these mixes use**, in its own time: `python S/asset_lib.py --lib {{lib}} plan {{src}}/work/<k>_words.json --t-body <hook_end> --t-cta <cta_start> --remix --src <k> --busy <a-b ...> --out {{src}}/work/illus_<k>.json`. `--busy` takes each window of the source's busy list where a burned-in photo card at chest height, full-screen B-roll or the phone-mockup CTA is on screen. A title at the top of the frame does not block an asset. Read every "why" against the sentence before you keep a beat. Check symptom vs relief ("يحبس السعال وتولي تتنفس" is breathing lungs, not the cough), and drop figurative words and false hits.
+3. **Copy the beats you keep** into `{{output}}` with only these fields: `src`, `kind: "asset"`, `lib`, `side`, `in`, `out`, `keys` / `breathe` / `shake`, and `bottom` when needed. Leave out `img`, `w`, `h`, `x` and `top`: place fills them. Write no labels, discs, jar packs, ghosts, counters or badges. That style is gone, and `remix_broll.py` drops any beat without a picture.
+4. **Keep it off the burned-in captions.** They move between shots, so check each beat on the contact sheet or with `python S/batch.py frames {{src}} <k> <first>-<last>` (a strip in `{{look}}/`). The picture's bottom edge sits at {{bottom}} px. Where that shot's caption sits higher, give the beat a `bottom` above the caption's top. Use `side: "L"` / `"R"` when his hands or the product are in the way. It never covers a caption, a card or his face.
+5. **MISSING** are the ideas he names that no picture shows. {{draw_rule}}
+
+## Rules (remix.md, camel-style.md §5)
+
+- One asset at a time: at least 0.3 s between one leaving (`out`) and the next arriving (`in`) in the same source. Each stays 2.4–4 s, or up to 6 s with another key when he stays on the topic. The same picture comes back only 6 s or more after it left.
+- `in` is about 0.25 s before the first word that names it. The key move (`keys` pop, `breathe` swell, `shake` shudder, from the picture's `motion`) lands on the key word while the picture is on screen.
+- Each beat starts at least 0.20 s after the start of the body segment that uses it and ends at least 0.25 s before that segment's end. `map_beats.py` drops anything else. Nothing goes in a hook segment unless the mix has `hook_beats`, and nothing in the CTA: clear everything before the CTA mockup.
+- Show only what he says, at the moment he says it. Percent, number, price and gift moments get no picture: the burned-in caption already says them.
+- Keep every asset beat already in the file (other mixes use them) unless it is wrong. Reuse a beat another mix already has on the same source range as it is. Older beats (discs, the jar `pack`, labels: no `lib`, or not `kind: "asset"`) show nothing any more. Replace the ones inside these mixes' body segments with asset beats where a picture fits, or delete them. A `lib` that is not in `{{lib}}` stops the build: fix or delete every such beat. To keep a GPT studio picture an older beat used, copy its file into `{{img}}` and `index` again; it keeps its id.
+- `sfx`: at most 3 `pop.mp3` per body, each at volume .12–.16 on an asset's entry and never on a key word. The template adds the join whooshes.
 
 ## Output
 
 1. `{{output}}` (UTF-8 JSON, no comments), following the schema below.
-2. `{{notes_out}}` for the app's cards: `{"beats": [{"mix", "t", "side", "graphic", "words"}], "gpt_drawings": [{"path", "prompt"}], "unsure": ["..."]}` — one line per beat and mix, with the words it lands on.
+2. `{{notes_out}}` for the app's cards: `{"beats": [{"mix", "t", "side", "graphic", "words"}], "missing": [{"concept", "words", "src", "t"}], "gpt_drawings": [{"path", "prompt"}], "unsure": ["..."]}`. Write one `beats` line per asset and mix: `t` in the mix's own time, `graphic` = the picture's library id, `words` = what he says on it. List every MISSING idea worth a picture, and the wording or matches you were not sure of.
 
-Do not run `batch.py build`, `check` or `render`: the app queues them when this file is valid.
+Do not run `batch.py build`, `check` or `render`: the app queues them once this file is valid.
 
-Then reply in a few lines: per mix its beats (time → graphic → words), the library pictures used, the pictures GPT drew for this round, and the wording you were not sure of.
+Then reply in a few lines. Give, per mix, its assets (time → picture → words), the pictures you wrote keywords for, the ideas that have no picture (MISSING) for the user to upload, any picture GPT drew, and what you were not sure of.
 
 ```json
 {{schema}}

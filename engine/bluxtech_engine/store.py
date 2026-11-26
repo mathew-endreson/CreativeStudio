@@ -170,14 +170,14 @@ def fill_segs(d, analysis, ad):
 
 
 def live(d, P, M, ad):
-    """A proposal with what changes while it waits: its length, the cutouts it still needs and their cost,
-    its cuts checked against the scans, and whether an ad with the same segments now exists."""
+    """A proposal with what changes while it waits: its length, its cuts checked against the scans, and whether an
+    ad with the same segments now exists. A remix needs no speaker cutout any more (the assets sit in front of him,
+    Nov 26 2026): new_cutouts / cutout_eta_s stay for the UI, always empty."""
     m = mix_of(ad)
     out = dict(ad)
     out["duration"] = B.tt(sum(B.fr(s["a1"]) - B.fr(s["a0"]) for s in ad["segs"]))
-    cuts, err = skill(B.plan_cuts, d, P, {ad["id"]: m}, [ad["id"]], all_gfx=True)
-    out["new_cutouts"] = cuts or []
-    out["cutout_eta_s"] = sum(c["eta_s"] for c in cuts or [])
+    out["new_cutouts"] = []
+    out["cutout_eta_s"] = 0
     notes, _ = skill(B.cut_notes, d, P, m)
     out["checks"] = notes or []
     twin = next((mid for mid, x in M.items() if mid != ad["id"] and B.same_segs(x["segs"], ad["segs"])), None)

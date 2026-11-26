@@ -254,9 +254,9 @@ export function JobsPanel({ jobs, open, onClose, focus }: { jobs: Job[]; open: b
   const job = jobs.find((j) => j.id === sel) ?? jobs.find(isActive) ?? jobs[0];
   const running = jobs.filter(isActive).length;
   return (
-    <div className="fixed inset-0 z-40 flex items-start justify-end bg-black/25 p-3 pt-[52px]" onClick={onClose}>
+    <div className="fixed inset-0 z-40 flex items-start justify-end bg-black/30 p-3 pt-[48px] backdrop-blur-[2px]" onClick={onClose}>
       <aside
-        className="flex h-full w-[min(1100px,94vw)] flex-col overflow-hidden rounded-[10px] border border-line-strong bg-surface/95 shadow-hud backdrop-blur-xl"
+        className="flex h-full w-[min(1100px,94vw)] flex-col overflow-hidden glass rounded-[14px]"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-label="Background tasks"

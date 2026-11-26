@@ -78,6 +78,17 @@ def effective_gpt_cap(n):
     return n if config.codex_bin() else 0
 
 
+def draw_cap(body, P=None):
+    """GPT draws a missing picture only when the user asks in this request: an explicit `gpt_cap`, or
+    `draw_missing: true` (up to the product's / the settings' cap). Otherwise MISSING ideas are reported to the user,
+    who uploads a picture (the bluxstudio-skill since Nov 26 2026)."""
+    if body.get("gpt_cap") is not None:
+        return effective_gpt_cap(body["gpt_cap"])
+    if body.get("draw_missing"):
+        return effective_gpt_cap((P or {}).get("gpt_cap", settings.get("gpt_cap")))
+    return 0
+
+
 @app.get("/api/app")
 def app_info():
     hf = config.HF / "node_modules" / "hyperframes" / "bin" / "hyperframes.mjs"
@@ -185,6 +196,28 @@ def create_product(body: SM.NewProduct):
 @app.get("/api/products/{slug}")
 def product(slug: str):
     return store.detail(slug)
+
+
+@app.get("/api/products/{slug}/pictures")
+def get_pictures(slug: str):
+    """The product's asset folder (<slug>_src/img) and its library: what the assets of its ads are made from."""
+    return products.pictures(slug)
+
+
+@app.post("/api/products/{slug}/pictures")
+def add_pictures(slug: str, body: SM.AddPictures):
+    """More pictures for the product (cut out / copied into its asset folder, then indexed), and its asset_bottom."""
+    license.require()
+    try:
+        added = products.add_pictures(slug, body)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    d, P, _ = store.product(slug)
+    made = []
+    if added or body.files:
+        made.append(public(jobs.get(jobs.add(slug, "light", "pictures", f"Prepare the pictures of {P.get('name') or slug}",
+                                             {"type": "pictures"}))))
+    return {"added": added, "pictures": products.pictures(slug), "jobs": made}
 
 
 @app.get("/api/products/{slug}/sources/{key}")
@@ -348,7 +381,8 @@ def patch_proposal(slug: str, pid: str, body: dict = Body(...)):
 
 @app.post("/api/products/{slug}/build")
 def build(slug: str, body: dict = Body(...)):
-    """Ticked proposals -> mixes, then: cutouts -> graphics (Claude) -> build -> check [-> render]."""
+    """Ticked proposals -> mixes, then: the product's pictures indexed -> assets (Claude) -> build -> check [-> render].
+    No speaker cutout: the assets sit in front of him (bluxstudio-skill, Nov 26 2026)."""
     license.require()
     d, P, M = store.product(slug)
     ids = list(body.get("ids") or [])
@@ -360,11 +394,9 @@ def build(slug: str, body: dict = Body(...)):
     if claude_running(slug, "graphics"):
         raise HTTPException(409, "a graphics run for this product is already queued or running")
     ch = Chain(slug, f"build-{int(time.time())}")
-    frames, _ = products.cut_work(slug, mids)
-    if frames:
-        ch.add("heavy", "cut", f"Cut out the speaker for {len(mids)} mix{'es' if len(mids) > 1 else ''}", batch_cmd("cut", d, *mids), work=frames)
-    ch.add("claude", "graphics", f"Plan the graphics of {len(mids)} mix{'es' if len(mids) > 1 else ''} with Claude",
-           {"type": "claude", "stage": "graphics", "args": {"ids": mids, "gpt_cap": effective_gpt_cap(body.get("gpt_cap") or P.get("gpt_cap", settings.get("gpt_cap")))}},
+    ch.add("light", "pictures", f"Index the pictures of {P.get('name') or slug}", {"type": "pictures"})
+    ch.add("claude", "graphics", f"Plan the assets of {len(mids)} mix{'es' if len(mids) > 1 else ''} with Claude",
+           {"type": "claude", "stage": "graphics", "args": {"ids": mids, "gpt_cap": draw_cap(body, P)}},
            work=len(mids))
     ch.add("light", "build", f"Build {' '.join(mids)}", batch_cmd("build", d, *mids))
     ch.add("light", "check", f"Lint and snapshot {' '.join(mids)}", batch_cmd("check", d, *mids))
@@ -443,7 +475,8 @@ def create_fresh(body: dict = Body(...)):
     """One footage -> a project; queues step 1 (project), the transcript and the cutout."""
     license.require()
     try:
-        slug = fresh.create(body.get("footage") or "", body.get("slug"), body.get("out_dir"), body.get("name"), body.get("whisper_prompt") or "")
+        slug = fresh.create(body.get("footage") or "", body.get("slug"), body.get("out_dir"), body.get("name"), body.get("whisper_prompt") or "",
+                            body.get("assets"))
     except ValueError as e:
         raise HTTPException(422, str(e))
     f = fresh.info(slug)
@@ -490,6 +523,15 @@ def put_marks(slug: str, body: SM.FreshMarks):
         raise HTTPException(422, str(e))
 
 
+@app.put("/api/fresh/{slug}/assets")
+def put_fresh_assets(slug: str, body: dict = Body(...)):
+    """The folder of pictures for this ad (`path`; empty = the project's own uploads folder)."""
+    try:
+        return fresh.set_assets(slug, (body.get("path") or "").strip() or None)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+
+
 @app.post("/api/fresh/{slug}/run")
 def run_fresh(slug: str, body: dict = Body(default={})):
     """Stage F: Claude does steps 3-10 and renders. Waits for the cutout if it is still running."""
@@ -507,7 +549,7 @@ def run_fresh(slug: str, body: dict = Body(default={})):
         fix = jobs.add(slug, "claude", "darija", f"Correct the Darija of {f.get('name') or slug} with Claude", FRESH_DARIJA, work=1)
     dep = dep or fix                                        # the cutout takes far longer than the correction
     jid = jobs.add(slug, "claude", "fresh", f"Edit {f.get('name') or slug} with Claude",
-                   {"type": "claude", "stage": "fresh", "args": {"gpt_cap": effective_gpt_cap(body.get("gpt_cap") or settings.get("gpt_cap"))}},
+                   {"type": "claude", "stage": "fresh", "args": {"gpt_cap": draw_cap(body)}},
                    depends_on=dep, work=1)
     return {"jobs": [public(jobs.get(jid))]}
 
@@ -654,6 +696,11 @@ def media_frame(slug: str, key: str, frame: int, w: int = 160):
             raise HTTPException(404, "no such frame")
         os.replace(tmp, out)
     return picture(out)
+
+
+@app.get("/media/{slug}/img/{name}")
+def media_picture(slug: str, name: str):
+    return picture(products.picture_file(slug, name), "no-cache")
 
 
 @app.get("/media/{slug}/ad/{mid}")
