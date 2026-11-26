@@ -1,0 +1,5 @@
+{
+  "_comment": "Copy to supabase.config.json (dev); the installer ships it as <resources>/supabase.config.json. Supabase dashboard > Project Settings > API Keys: the Project URL and the publishable key (sb_publishable_..., or the legacy anon key). Both are public. Never put the secret / service_role key here. Without this file the engine runs with licensing off (dev mode).",
+  "url": "https://your-project-ref.supabase.co",
+  "publishableKey": "sb_publishable_..."
+}

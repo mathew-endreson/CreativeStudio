@@ -1,0 +1,9 @@
+# BluxTech Studio engine (Python 3.12). The skill's own scripts need numpy, opencv, pillow and faster-whisper too:
+# in dev they come from the base Python (venv made with --system-site-packages); the installer's runtime
+# (installer/runtime-requirements.txt) carries all of them.
+fastapi==0.165.0
+uvicorn==0.54.0
+pydantic>=2.7
+python-multipart>=0.0.9
+pyjwt[crypto]==2.15.1
+claude-agent-sdk==0.2.189

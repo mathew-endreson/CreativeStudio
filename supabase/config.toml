@@ -1,0 +1,18 @@
+# Only what the deploy needs; `supabase link --project-ref <ref>` points the CLI at your project.
+project_id = "bluxtech-studio"
+
+[functions.license]
+# The function checks the user's access token itself (auth.getUser), which works with both the legacy JWT secret
+# and the new asymmetric signing keys.
+verify_jwt = false
+
+# The desktop app cannot receive a link's redirect, so sign-up confirmation and password reset emails carry a code
+# ({{ .Token }}) that the user types into the app. These templates are applied to the hosted project with the
+# Management API (installer/deploy_supabase.ps1) or `supabase config push`; they also apply to `supabase start`.
+[auth.email.template.confirmation]
+subject = "Your BluxTech Studio confirmation code"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Your BluxTech Studio password reset code"
+content_path = "./supabase/templates/recovery.html"
