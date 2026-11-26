@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { api, errText, type Library as LibraryT } from "./api";
 import { Button, Card, Chip, Empty, ErrorNote, Label, PageHeader } from "./ui";
 
-/** The GPT asset library: every orange illustration with the words that pull it into an ad. */
+/** The GPT asset library: every orange illustration GPT drew, with its keywords. The ads use each product's own
+ *  pictures (its Pictures tab); GPT draws only when the user asks. */
 export default function Library() {
   const [lib, setLib] = useState<LibraryT | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -25,10 +26,10 @@ export default function Library() {
       <div className="flex flex-wrap items-end justify-between gap-2">
         <PageHeader
           icon="images"
-          title="Asset library"
+          title="GPT library"
           sub={
             <>
-              {lib ? `${lib.assets.length} pictures` : "…"} in <code>{lib?.dir}</code>. Pictures the ChatGPT / Codex app draws land here; <code>asset_lib.py sync</code> and <code>tag</code> file them with their keywords.
+              {lib ? `${lib.assets.length} pictures` : "…"} in <code>{lib?.dir}</code>. The pictures the ChatGPT / Codex app draws when you ask it to. The ads themselves use each product's own pictures (its Pictures tab).
             </>
           }
         />
@@ -56,7 +57,7 @@ export default function Library() {
         </div>
         {found && <pre dir="auto" className="mt-2 max-h-[200px] overflow-auto rounded-[6px] bg-surface-2 p-2 text-[12px] whitespace-pre-wrap">{found}</pre>}
       </Card>
-      {lib && !lib.exists && <Empty title="No library.json">The GPT asset tool has not been set up on this PC. Ads still get discs and the jar.</Empty>}
+      {lib && !lib.exists && <Empty title="No library.json">The GPT asset tool has not been set up on this PC. The ads use each product's own pictures, so nothing is missing.</Empty>}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-3">
         {assets.map((a) => (
           <Card key={a.id} className="p-2 ring-2 ring-transparent transition-shadow hover:ring-sel">

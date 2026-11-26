@@ -8,6 +8,14 @@ export async function pickFolder(): Promise<string | null> {
   return typeof r === "string" ? r : null;
 }
 
+/** Pictures for a product's asset folder (transparent PNG / WebP cut-outs work best; others are cut out). */
+export async function pickPictures(): Promise<string[]> {
+  if (!inTauri()) return [];
+  const { open } = await import("@tauri-apps/plugin-dialog");
+  const r = await open({ multiple: true, title: "Choose the product's pictures", filters: [{ name: "Pictures", extensions: ["png", "webp", "jpg", "jpeg", "tif", "tiff", "heic", "rw2"] }] });
+  return Array.isArray(r) ? r : typeof r === "string" ? [r] : [];
+}
+
 export async function pickVideo(): Promise<string | null> {
   if (!inTauri()) return null;
   const { open } = await import("@tauri-apps/plugin-dialog");

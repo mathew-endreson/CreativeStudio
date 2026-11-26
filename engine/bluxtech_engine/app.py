@@ -198,6 +198,16 @@ def product(slug: str):
     return store.detail(slug)
 
 
+@app.delete("/api/products/{slug}/pictures/{pid}")
+def remove_picture(slug: str, pid: str):
+    """One picture out of the product's folder and library (the user's own uploads only)."""
+    try:
+        products.remove_picture(slug, pid)
+    except ValueError as e:
+        raise HTTPException(404 if str(e).startswith("no picture") else 422, str(e))
+    return products.pictures(slug)
+
+
 @app.get("/api/products/{slug}/pictures")
 def get_pictures(slug: str):
     """The product's asset folder (<slug>_src/img) and its library: what the assets of its ads are made from."""
@@ -214,9 +224,12 @@ def add_pictures(slug: str, body: SM.AddPictures):
         raise HTTPException(422, str(e))
     d, P, _ = store.product(slug)
     made = []
-    if added or body.files:
+    waiting = any(not p.get("done") for p in P.get("pictures", []))
+    if added or body.reindex or waiting:
+        # after a pictures job that is still queued or running (it may already be past these new pictures)
+        dep = next((j["id"] for j in jobs.list(slug) if j["kind"] == "pictures" and j["status"] in ACTIVE), None)
         made.append(public(jobs.get(jobs.add(slug, "light", "pictures", f"Prepare the pictures of {P.get('name') or slug}",
-                                             {"type": "pictures"}))))
+                                             {"type": "pictures"}, depends_on=dep))))
     return {"added": added, "pictures": products.pictures(slug), "jobs": made}
 
 
@@ -649,8 +662,12 @@ async def job_stream(jid: int, request: Request, after: int = 0):
 
 # ------------------------------------------------------------------ media
 
+IMAGE_TYPES = {".png": "image/png", ".webp": "image/webp", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".svg": "image/svg+xml"}
+
+
 def picture(p, cache="max-age=86400"):
-    return FileResponse(p, headers={"Cache-Control": cache})
+    # Windows' mime registry has no entry for WebP: name the type ourselves
+    return FileResponse(p, media_type=IMAGE_TYPES.get(os.path.splitext(str(p))[1].lower()), headers={"Cache-Control": cache})
 
 
 @app.get("/media/{slug}/src/{key}")

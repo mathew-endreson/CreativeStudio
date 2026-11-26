@@ -61,7 +61,7 @@ function useHash() {
 const PAGES: { href: string; label: string; match: (p: string[]) => boolean; icon: IconName }[] = [
   { href: "#/", label: "Projects", match: (p) => p.length === 0 || p[0] === "p" || p[0] === "new", icon: "film" },
   { href: "#/fresh", label: "Fresh edit", match: (p) => p[0] === "fresh", icon: "wand" },
-  { href: "#/library", label: "Assets", match: (p) => p[0] === "library", icon: "images" },
+  { href: "#/library", label: "Asset Library", match: (p) => p[0] === "library", icon: "images" },
   { href: "#/settings", label: "Settings", match: (p) => p[0] === "settings" || p[0] === "setup", icon: "gear" },
 ];
 

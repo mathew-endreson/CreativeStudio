@@ -80,7 +80,7 @@ def info(slug):
             "sheet": (proj / ".work" / "sheet.jpg").exists(), "final_sheet": (proj / ".work" / "final_sheet.jpg").exists(),
             "result": res, "ad": bool(out and out.exists()), "ad_path": str(out) if out else None,
             "out_path": str(out_path(f)), "session_id": st.get("session_id"), "usage": store.usage(st),
-            "assets_dir": str(folder), "assets_count": sum(1 for p in folder.iterdir() if p.is_file() and p.suffix.lower()
+            "assets_dir": str(folder), "assets_exists": folder.is_dir(), "assets_count": sum(1 for p in folder.iterdir() if p.is_file() and p.suffix.lower()
                                                          in (".png", ".webp", ".jpg", ".jpeg")) if folder.is_dir() else 0,
             "assets_library": assetlib.counts(folder / "library.json") if (folder / "library.json").exists() else None,
             "snaps": sorted(p.name for p in (proj / ".work" / "snaps").glob("*.png")) if (proj / ".work" / "snaps").is_dir() else []}

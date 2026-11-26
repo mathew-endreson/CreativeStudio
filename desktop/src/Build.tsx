@@ -108,7 +108,7 @@ function MixCard({ slug, m, jobs, onAction, openJob }: { slug: string; m: Result
           )}
           {m.beats.length > 0 && (
             <div>
-              <Label>Beats</Label>
+              <Label>Assets (time · picture · his words)</Label>
               <table className="mt-1 w-full text-[12.5px]">
                 <tbody>
                   {m.beats.map((b, i) => (
@@ -123,15 +123,36 @@ function MixCard({ slug, m, jobs, onAction, openJob }: { slug: string; m: Result
                       <td dir="auto" className="py-1 text-ink-2">
                         {b.label}
                       </td>
-                      {b.check && <td className={cx("py-1 text-[12px]", /WARN/.test(b.check) ? "text-warn" : "text-ink-3")}>{b.check}</td>}
+                      {b.check && <td className={cx("py-1 text-[12px]", /WARN|dropped/.test(b.check) ? "text-warn" : "text-ink-3")}>{b.check}</td>}
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
-          {(m.gpt_drawings.length > 0 || m.unsure.length > 0 || m.revision) && (
+          {(m.gpt_drawings.length > 0 || m.unsure.length > 0 || m.revision || (m.missing?.length ?? 0) > 0) && (
             <div className="grid gap-2 text-[12.5px] sm:grid-cols-2">
+              {m.missing && m.missing.length > 0 && (
+                <div>
+                  <Label>Ideas with no picture</Label>
+                  <ul className="mt-1 list-disc pl-4">
+                    {m.missing.map((x, i) => (
+                      <li key={i}>
+                        <span className="font-medium">{x.concept}</span>
+                        {x.words && (
+                          <span className="text-ink-3">
+                            {" · "}
+                            <bdi>{x.words}</bdi>
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <a href={`#/p/${slug}/pictures`} className="text-[12px] text-accent underline">
+                    Add their pictures
+                  </a>
+                </div>
+              )}
               {m.gpt_drawings.length > 0 && (
                 <div>
                   <Label>GPT drew for this batch</Label>
@@ -193,6 +214,7 @@ export default function Build({ p, reload, openJob }: { p: ProductDetail; reload
   const [res, setRes] = useState<Results | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [render, setRender] = useState<boolean | null>(null);
+  const [draw, setDraw] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const jobs = useJobs(slug);
   const load = useCallback(() => {
@@ -229,20 +251,28 @@ export default function Build({ p, reload, openJob }: { p: ProductDetail; reload
           <span className="clip grid h-8 w-8 shrink-0 place-items-center rounded-[6px] bg-surface-3 text-ink-2">
             <Icon name="share" size={15} />
           </span>
-          <div className="flex-1">
+          <div className="min-w-[280px] flex-1">
             <div className="font-semibold">Ticked proposals</div>
             <div className="text-[12.5px] text-ink-2">
               {picked.length === 0 ? (
                 <>Tick ads in <a href={`#/p/${slug}/possible`} className="text-accent underline">Possible ads</a> first.</>
               ) : (
-                <>Each goes through: cutout → graphics (Claude) → build → lint and snapshots{doRender ? " → render" : ""}. Cutouts take about 1 minute per 2.3 s of body.</>
+                <>
+                  Each goes through: the product's <a href={`#/p/${slug}/pictures`} className="text-accent underline">pictures</a> indexed → assets (Claude) → build → lint and snapshots{doRender ? " → render" : ""}. No speaker cutout: the pictures sit in front of him.
+                </>
               )}
             </div>
           </div>
           <label className="flex items-center gap-1.5 text-[13px]">
             <input type="checkbox" checked={doRender} onChange={(e) => setRender(e.target.checked)} /> render right after the check
           </label>
-          <Button variant="primary" icon="share" disabled={picked.length === 0} onClick={() => act(api.build(slug, picked.map((a) => a.id), doRender))}>
+          <label
+            className="flex items-center gap-1.5 text-[13px]"
+            title={`Off: ideas he names that no picture shows are listed for you to upload. On: GPT draws up to ${settings?.gpt_cap ?? 3} of them this run (your ChatGPT image allowance).`}
+          >
+            <input type="checkbox" checked={draw} onChange={(e) => setDraw(e.target.checked)} /> let GPT draw missing pictures
+          </label>
+          <Button variant="primary" icon="share" disabled={picked.length === 0} onClick={() => act(api.build(slug, picked.map((a) => a.id), doRender, draw))}>
             Build {picked.length || ""} ad{picked.length === 1 ? "" : "s"}
           </Button>
         </div>
@@ -252,8 +282,11 @@ export default function Build({ p, reload, openJob }: { p: ProductDetail; reload
               <li key={a.id} className="flex items-center gap-2 rounded-[5px] border-l-[3px] border-sel bg-surface-2 px-2 py-1">
                 <span className="truncate font-medium">{a.name}</span>
                 <span className="num ml-auto text-ink-3">{fmt(a.duration, 1)} s</span>
-                {a.cutout_eta_s > 0 && <Chip title="cutout time still needed">+{clock(a.cutout_eta_s)}</Chip>}
-                {a.graphics.filter((g) => g.kind === "missing").length > 0 && <Chip tone="warn">{a.graphics.filter((g) => g.kind === "missing").length} GPT</Chip>}
+                {a.graphics.filter((g) => g.kind === "missing").length > 0 && (
+                  <Chip tone="warn" title="Ideas he names that no picture shows yet">
+                    {a.graphics.filter((g) => g.kind === "missing").length} without a picture
+                  </Chip>
+                )}
               </li>
             ))}
           </ul>

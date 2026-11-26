@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, clock, fmt, frameOf, type Graphic, type ProductDetail, type Proposal, type ProposalList } from "./api";
+import { api, fmt, frameOf, type Graphic, type ProductDetail, type Proposal, type ProposalList } from "./api";
 import { Icon } from "./icons";
 import { ActiveJobs, isActive, useJobs, useOnJobEnd } from "./Jobs";
 import { Preview, roleOf, SegEditor, thumb } from "./SegEditor";
 import { Button, Card, Chip, cx, dirOf, Empty, ErrorNote, field, Label, Loading } from "./ui";
 
-const graphicTone = (g: Graphic) => (g.kind === "missing" ? "warn" : g.kind === "library" ? "ok" : g.kind === "disc" ? "neutral" : "accent");
+// library = one of the product's pictures, missing = an idea no picture shows yet; disc / pack / offer come from
+// proposals made before Nov 26 2026, when the ads still had icon discs and jar packshots
+const graphicTone = (g: Graphic) => (g.kind === "missing" ? "warn" : g.kind === "library" ? "ok" : "neutral");
 const graphicName = (g: Graphic) =>
-  g.kind === "missing" ? `GPT draws: ${g.what}` : g.kind === "library" ? `library: ${g.what}` : g.kind === "disc" ? `${g.what} disc` : g.kind === "pack" ? "jar" : "offer photo";
+  g.kind === "missing" ? `no picture: ${g.what}` : g.kind === "library" ? g.what : g.kind === "disc" ? `old style: ${g.what} disc` : g.kind === "pack" ? "old style: jar" : "old style: offer photo";
 
 function Segments({ slug, ad, labels }: { slug: string; ad: Proposal; labels: Record<string, string> }) {
   return (
@@ -30,7 +32,7 @@ function Segments({ slug, ad, labels }: { slug: string; ad: Proposal; labels: Re
                 </span>
                 {s.v0 != null && <Chip title="The picture starts on this clean frame and is held back to the cut">picture from {fmt(s.v0, 3)}</Chip>}
                 {s.v1 != null && <Chip title="The picture is held on this clean frame until the cut">picture until {fmt(s.v1, 3)}</Chip>}
-                {role !== "hook" && !ad.body.includes(i) && role !== "cta" && <Chip title="No graphics behind him here">no B-roll</Chip>}
+                {role !== "hook" && !ad.body.includes(i) && role !== "cta" && <Chip title="No pictures on this segment">no assets</Chip>}
               </div>
               <div dir="auto" className="mt-0.5 text-[15px] leading-snug" title={s.text ? `Whisper wrote: ${s.text}` : undefined}>
                 {s.said || s.text}
@@ -70,7 +72,7 @@ function Storyline({ ad, labels, onPlay }: { ad: Proposal; labels: Record<string
   );
 }
 
-function AdCard({ slug, ad, labels, cap, onChange }: { slug: string; ad: Proposal; labels: Record<string, string>; cap: number; onChange: (p: Proposal) => void }) {
+function AdCard({ slug, ad, labels, onChange }: { slug: string; ad: Proposal; labels: Record<string, string>; onChange: (p: Proposal) => void }) {
   const [editing, setEditing] = useState(false);
   const [preview, setPreview] = useState(false);
   const [rejecting, setRejecting] = useState(false);
@@ -120,7 +122,7 @@ function AdCard({ slug, ad, labels, cap, onChange }: { slug: string; ad: Proposa
             )}
           </div>
           <div>
-            <Label>Planned graphics</Label>
+            <Label>Planned assets</Label>
             <div className="mt-1.5 flex flex-wrap gap-1">
               {ad.graphics.length === 0 && <span className="text-[13.5px] text-ink-3">None planned.</span>}
               {ad.graphics.map((g, i) => (
@@ -129,22 +131,19 @@ function AdCard({ slug, ad, labels, cap, onChange }: { slug: string; ad: Proposa
                 </Chip>
               ))}
             </div>
-            <div className={cx("mt-1 text-[12.5px]", missing.length > cap ? "text-bad" : "text-ink-3")}>
-              {missing.length === 0 ? "GPT has nothing to draw: every picture is in the library." : `GPT would draw ${missing.length} picture${missing.length > 1 ? "s" : ""} (cap ${cap} per ad).`}
+            <div className={cx("mt-1 text-[12.5px]", missing.length ? "text-warn" : "text-ink-3")}>
+              {missing.length === 0 ? (
+                "Every idea it shows has a picture."
+              ) : (
+                <>
+                  {missing.length} idea{missing.length > 1 ? "s have" : " has"} no picture yet:{" "}
+                  <a href={`#/p/${slug}/pictures`} className="underline">
+                    add {missing.length > 1 ? "them" : "it"} to the product's pictures
+                  </a>
+                  , or let GPT draw when you build.
+                </>
+              )}
             </div>
-          </div>
-          <div>
-            <Label>Cutouts still to make</Label>
-            {ad.new_cutouts.length === 0 ? <div className="mt-1 text-[13.5px] text-ink-3">None: every range it uses is already cut out.</div> : (
-              <div className="mt-1 space-y-0.5 text-[13.5px]">
-                {ad.new_cutouts.map((c, i) => (
-                  <div key={i} className="num">
-                    {labels[c.src] ?? c.src} frames {c.f0}–{c.f1} · {fmt(c.seconds, 1)} s of video · about {clock(c.eta_s)}
-                  </div>
-                ))}
-                <div className="text-[12px] text-ink-3">Cut once, then shared by every ad that uses that range.</div>
-              </div>
-            )}
           </div>
           <div>
             <Label>Cut check</Label>
@@ -222,9 +221,6 @@ export default function Proposals({ p, reload, openJob }: { p: ProductDetail; re
   const open = list.ads.filter((a) => a.status !== "rejected");
   const rejected = list.ads.filter((a) => a.status === "rejected");
   const picked = open.filter((a) => a.picked);
-  const cut = new Map<string, number>();
-  picked.forEach((a) => a.new_cutouts.forEach((c) => cut.set(`${c.src}:${c.f0}-${c.f1}`, c.eta_s)));
-  const cutEta = [...cut.values()].reduce((a, b) => a + b, 0);
   const failed = jobs.find((j) => j.kind === "propose");
 
   return (
@@ -264,11 +260,11 @@ export default function Proposals({ p, reload, openJob }: { p: ProductDetail; re
       {picked.length > 0 && (
         <div className="flex flex-wrap items-center gap-3 rounded-[8px] border border-sel/40 bg-sel/10 px-3 py-2">
           <div className="min-w-0 flex-1 text-[13.5px]">
-            <b>{picked.length} ticked</b> to build: {picked.map((a) => a.name.replace(/^.*?(Mix\d+).*$/, "$1")).join(", ")}.{" "}
-            {cut.size ? `New cutouts first: ${cut.size} range${cut.size > 1 ? "s" : ""}, about ${clock(cutEta)}.` : "No new cutout needed."}
+            <b>{picked.length} ticked</b> to build: {picked.map((a) => a.name.replace(/^.*?(Mix\d+).*$/, "$1")).join(", ")}.
           </div>
-          <Button disabled title="The build queue is the next step of the app">Build the ticked ads</Button>
-          <span className="text-[12px] text-ink-3">Building arrives with the build queue (step 4).</span>
+          <Button icon="share" onClick={() => (location.hash = `#/p/${slug}/build`)}>
+            Go to Build & results
+          </Button>
         </div>
       )}
 
@@ -279,14 +275,14 @@ export default function Proposals({ p, reload, openJob }: { p: ProductDetail; re
         </Empty>
       )}
 
-      {open.map((ad) => <AdCard key={ad.id} slug={slug} ad={ad} labels={labels} cap={list.gpt_cap} onChange={onChange} />)}
+      {open.map((ad) => <AdCard key={ad.id} slug={slug} ad={ad} labels={labels} onChange={onChange} />)}
 
       {rejected.length > 0 && (
         <div>
           <button className="flex items-center gap-1 text-[12.5px] font-medium text-ink-2 hover:text-ink" onClick={() => setShowRejected(!showRejected)}>
             <Icon name={showRejected ? "chevronDown" : "chevronRight"} size={13} /> Rejected ({rejected.length})
           </button>
-          {showRejected && <div className="mt-2 space-y-3">{rejected.map((ad) => <AdCard key={ad.id} slug={slug} ad={ad} labels={labels} cap={list.gpt_cap} onChange={onChange} />)}</div>}
+          {showRejected && <div className="mt-2 space-y-3">{rejected.map((ad) => <AdCard key={ad.id} slug={slug} ad={ad} labels={labels} onChange={onChange} />)}</div>}
         </div>
       )}
     </div>

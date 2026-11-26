@@ -124,7 +124,9 @@ export type SourceAnalysis = {
 export type Liftable = { id: string; src: string; a0: number; a1: number; v0: number | null; v1: number | null; kind: string; label: string; text: string; said?: string; why: string };
 
 export type PSeg = { src: string; a0: number; a1: number; v0: number | null; v1: number | null; said: string; note: string; text?: string };
-export type Graphic = { on: string; kind: "disc" | "pack" | "offer" | "library" | "missing"; what: string; label: string; existing: boolean };
+/** An asset a proposal plans: one of the product's pictures (`library`) or an idea no picture shows yet (`missing`).
+ *  Proposals made before Nov 26 2026 also hold the old disc / pack / offer graphics. */
+export type Graphic = { on: string; kind: "library" | "missing" | "disc" | "pack" | "offer"; what: string; label: string; existing: boolean };
 export type Cutout = { src: string; f0: number; f1: number; frames: number; seconds: number; eta_s: number };
 export type Proposal = {
   id: string;
@@ -254,10 +256,29 @@ export type NewProduct = {
   offers: { label: string; photo: string; note: string }[];
   duplicates: string[];
   gpt_cap: number;
+  asset_bottom?: number | null;
   name_pattern?: string;
   slug?: string | null;
 };
+/** One of the assets of a built ad: `graphic` is the picture's library id, `label` the words he says on it. */
 export type BeatLine = { in: number; out: number; side: string; graphic: string; label: string; check?: string | null };
+/** An idea he names that no picture shows: the user uploads one (GPT draws it only on request). */
+export type MissingIdea = { concept: string; words?: string; src?: string; t?: number | null };
+export type PictureKeywords = { darija?: string[]; ar?: string[]; fr?: string[]; en?: string[] };
+/** A picture of a product's (or a fresh edit's) asset folder, as its library.json lists it. */
+export type Picture = { id: string; file: string; source?: string; motion: string; concept: string; keywords: PictureKeywords; tagged: boolean; missing: boolean; problem: string };
+export type PictureCounts = { pictures: number; usable: number; untagged: number };
+export type PictureTag = "packshot" | "offer" | "illustration";
+export type NewPicture = { file: string; tag: PictureTag; label: string; note: string };
+export type ProductPictures = {
+  dir: string | null;
+  lib: string;
+  own_library: boolean;
+  assets: Picture[];
+  counts: PictureCounts;
+  asset_bottom: number | null;
+  pending: NewPicture[];
+};
 export type Report = {
   out: string;
   duration: number;
@@ -278,13 +299,14 @@ export type ResultMix = MixState & {
   segs: PSeg[];
   body: number[];
   cta: number | null;
-  build: { built_at: string; dur: number; t_body: number; t_cta: number | null; beats: number; no_cutout: string[]; place_warnings: string[] } | null;
+  build: { built_at: string; dur: number; t_body: number; t_cta: number | null; beats: number; place_warnings: string[] } | null;
   check: { times: number[]; lint_exit: number; snapshot_exit: number; files: string[] } | null;
   report: Report | null;
   beats: BeatLine[];
   revision: { changed: string[]; notes: string } | null;
   gpt_drawings: { path: string; prompt: string }[];
   unsure: string[];
+  missing?: MissingIdea[];
   snaps: string[];
   sheets: string[];
   warnings: string[];
@@ -301,6 +323,7 @@ export type FreshResult = {
   captions: number;
   beats: { t: number; side: string; graphic: string; words: string }[];
   library_pictures: string[];
+  missing?: MissingIdea[];
   gpt_drawings: { path: string; prompt: string }[];
   unsure: string[];
   notes: string;
@@ -336,6 +359,12 @@ export type FreshProject = {
   finished?: boolean;
   words_data?: Segment[];
   error?: string;
+  /** the folder of pictures picked for this ad (null: the project's own uploads folder) */
+  assets?: string | null;
+  assets_dir?: string;
+  assets_exists?: boolean;
+  assets_count?: number;
+  assets_library?: PictureCounts | null;
 };
 export type LibraryAsset = {
   id: string;
@@ -393,18 +422,28 @@ export const api = {
   proposals: (slug: string) => req<ProposalList>(`/api/products/${slug}/proposals`),
   propose: (slug: string, count: number, note: string) => req<{ jobs: Job[] }>(`/api/products/${slug}/propose`, json("POST", { count, note })),
   patchProposal: (slug: string, id: string, patch: Record<string, unknown>) => req<Proposal>(`/api/products/${slug}/proposals/${id}`, json("PATCH", patch)),
-  build: (slug: string, ids: string[], render: boolean, gpt_cap?: number) => req<{ mixes: string[]; jobs: Job[] }>(`/api/products/${slug}/build`, json("POST", { ids, render, gpt_cap })),
+  /** draw_missing: GPT may draw the ideas no picture shows (up to the GPT cap); otherwise they are only listed. */
+  build: (slug: string, ids: string[], render: boolean, draw_missing = false) =>
+    req<{ mixes: string[]; jobs: Job[] }>(`/api/products/${slug}/build`, json("POST", { ids, render, draw_missing })),
+  pictures: (slug: string) => req<ProductPictures>(`/api/products/${slug}/pictures`),
+  /** More pictures (prepared and indexed by a job), asset_bottom, or `reindex` after files were dropped into the folder. */
+  addPictures: (slug: string, body: { files?: NewPicture[]; asset_bottom?: number | null; clear_asset_bottom?: boolean; reindex?: boolean }) =>
+    req<{ added: number; pictures: ProductPictures; jobs: Job[] }>(`/api/products/${slug}/pictures`, json("POST", body)),
+  /** Take one of the product's own pictures out of its folder and library. */
+  removePicture: (slug: string, id: string) => req<ProductPictures>(`/api/products/${slug}/pictures/${encodeURIComponent(id)}`, { method: "DELETE" }),
   render: (slug: string, ids: string[], replace = false) => req<{ jobs: Job[] }>(`/api/products/${slug}/render`, json("POST", { ids, replace })),
   fix: (slug: string, id: string, note = "") => req<{ jobs: Job[] }>(`/api/products/${slug}/fix`, json("POST", { id, note })),
   revise: (slug: string, id: string, feedback: string) => req<{ jobs: Job[] }>(`/api/products/${slug}/revise`, json("POST", { id, feedback })),
   results: (slug: string) => req<Results>(`/api/products/${slug}/results`),
 
   freshList: () => req<FreshProject[]>("/api/fresh"),
-  freshCreate: (body: { footage: string; name?: string; out_dir?: string; whisper_prompt?: string; slug?: string }) =>
+  freshCreate: (body: { footage: string; name?: string; out_dir?: string; whisper_prompt?: string; slug?: string; assets?: string }) =>
     req<{ slug: string; fresh: FreshProject; jobs: Job[] }>("/api/fresh", json("POST", body)),
   fresh: (slug: string) => req<FreshProject>(`/api/fresh/${slug}`),
   freshMarks: (slug: string, m: FreshMarks) => req<FreshProject>(`/api/fresh/${slug}/marks`, json("PUT", m)),
-  freshRun: (slug: string, gpt_cap?: number) => req<{ jobs: Job[] }>(`/api/fresh/${slug}/run`, json("POST", { gpt_cap })),
+  /** The ad's pictures folder; null = the project's own uploads folder. */
+  freshAssets: (slug: string, path: string | null) => req<FreshProject>(`/api/fresh/${slug}/assets`, json("PUT", { path })),
+  freshRun: (slug: string, draw_missing = false) => req<{ jobs: Job[] }>(`/api/fresh/${slug}/run`, json("POST", { draw_missing })),
   freshCutout: (slug: string) => req<{ jobs: Job[] }>(`/api/fresh/${slug}/cutout`, { method: "POST" }),
   freshDarija: (slug: string) => req<{ jobs: Job[] }>(`/api/fresh/${slug}/darija`, { method: "POST" }),
 
@@ -417,6 +456,9 @@ export const api = {
 };
 
 export const thumbUrl = (path: string, w = 96) => `/media/thumb?path=${q(path)}&w=${w}`;
+/** A picture of the product's own asset folder (its file name), or, before it has one, a GPT studio picture (its id). */
+export const pictureUrl = (slug: string, pics: Pick<ProductPictures, "own_library">, p: Pick<Picture, "id" | "file">) =>
+  pics.own_library ? `/media/${slug}/img/${q(basename(p.file))}` : `/media/library/${q(p.id)}`;
 
 export const FPS = 30;
 export const snap = (t: number) => Math.round(Math.round(t * FPS) / FPS * 10000) / 10000;

@@ -14,6 +14,7 @@ from .jobs import JobFailed
 from .store import B, NotFound, jdump, jload
 
 VIDEO = {".mp4", ".mov", ".m4v", ".mkv", ".webm", ".avi", ".mts"}
+MAX_PICTURE_BYTES = 80 * 2**20          # one uploaded picture at most (a RAW photo is about 25 MB)
 IMAGE = {".jpg", ".jpeg", ".png", ".webp", ".tif", ".tiff", ".rw2", ".heic"}
 
 
@@ -211,8 +212,15 @@ def pictures_job(ctx, job, spec):
             keep = src.suffix.lower() in (".png", ".webp") and src.exists() and has_alpha(src)
             out = folder / f"{stem}{src.suffix.lower() if keep else '.png'}"
         if out.exists() and not pic.get("done"):
-            pic["done"] = _rel(d, out)     # made by an earlier run of this job
-            continue
+            if any(q is not pic and q.get("done") == _rel(d, out) for q in pics):
+                # another upload already made a file of that name: never overwrite it, number this one
+                n = 2
+                while (folder / f"{out.stem}-{n}{out.suffix}").exists():
+                    n += 1
+                out = folder / f"{out.stem}-{n}{out.suffix}"
+            else:
+                pic["done"] = _rel(d, out)     # made by an earlier run of this job
+                continue
         if not src.exists():
             ctx.log("error", f"missing: {src}")
             continue
@@ -346,7 +354,11 @@ def add_pictures(slug, spec):
         if not full.is_file():
             raise ValueError(f"file not found: {f.file}")
         if full.suffix.lower() not in IMAGE:
-            raise ValueError(f"not a picture: {full.name}")
+            raise ValueError(f"not a picture: {full.name} (PNG, WebP, JPEG, TIFF, HEIC or RW2)")
+        if full.stat().st_size > MAX_PICTURE_BYTES:
+            raise ValueError(f"too large: {full.name} is {full.stat().st_size // 2**20} MB, the limit is {MAX_PICTURE_BYTES // 2**20} MB")
+        if full.stat().st_size == 0:
+            raise ValueError(f"empty file: {full.name}")
         if str(full).lower() in known:
             continue
         pics.append({"file": str(full), "tag": f.tag, "label": f.label, "note": f.note})
@@ -359,6 +371,29 @@ def add_pictures(slug, spec):
     P["asset_lib"] = P.get("asset_lib") or assetlib.PRODUCT_LIB
     jdump(d / "product.json", P)
     return added
+
+
+def remove_picture(slug, pid):
+    """Take one picture out of the product's library and folder (only a file inside that folder is deleted), and
+    forget the upload it came from so the pictures job does not make it again."""
+    d, P, _ = store.product(slug)
+    if not P.get("asset_lib"):
+        raise ValueError("this product has no picture folder of its own")
+    lib = assetlib.product_lib(d, P)
+    data = jload(lib) or {}
+    assets = data.get("assets") or []
+    entry = next((e for e in assets if e.get("id") == pid), None)
+    if entry is None:
+        raise ValueError(f"no picture {pid}")
+    f = assetlib.file_of(lib, entry)
+    folder = assetlib.product_folder(d, P).resolve()
+    if f.exists() and folder in f.resolve().parents:
+        f.unlink()
+    data["assets"] = [e for e in assets if e.get("id") != pid]
+    jdump(lib, data)
+    gone = _rel(d, f)
+    P["pictures"] = [p for p in P.get("pictures", []) if p.get("done") != gone]
+    jdump(d / "product.json", P)
 
 
 def picture_file(slug, name):

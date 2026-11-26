@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent as RPointer
 import { api, basename, clock, errText, fmt, type FreshMarks, type FreshProject, type Job, type Segment } from "./api";
 import { Icon } from "./icons";
 import { ActiveJobs, isActive, JobTiming, Ring, useJobs, useOnJobEnd } from "./Jobs";
-import { pickVideo, pickFolder } from "./tauri";
+import { inTauri, pickVideo, pickFolder } from "./tauri";
 import { TranscriptStatus } from "./Transcript";
 import { Button, Chip, cx, dirOf, Empty, ErrorNote, field, Label, Loading, PageHeader, Panel, tc } from "./ui";
 import { useVideo, Viewer } from "./Viewer";
@@ -115,8 +115,8 @@ function Steps({ f, jobs, openJob }: { f: FreshProject; jobs: Job[]; openJob: (i
     { label: "Project (1080×1920 copy, audio, sheet)", done: f.project, kind: "fresh_init" },
     { label: "Transcript (ffmpeg + Whisper, word times)", done: f.words, kind: "transcribe" },
     { label: "Darija (Claude + darijadz, darija_lint)", done: f.darija === "corrected", kind: "darija" },
-    { label: "Speaker cutout (matte)", done: f.cutout, kind: "cut" },
-    { label: "Edit with Claude (captions, graphics, render)", done: f.ad, kind: "fresh" },
+    { label: "Speaker cutout (for the particles and route behind him)", done: f.cutout, kind: "cut" },
+    { label: "Edit with Claude (captions, pictures, render)", done: f.ad, kind: "fresh" },
   ];
   return (
     <div className="space-y-1.5">
@@ -146,10 +146,83 @@ function Steps({ f, jobs, openJob }: { f: FreshProject; jobs: Job[]; openJob: (i
   );
 }
 
+/** The ad's pictures: its own uploads folder, or a folder the user picked. */
+function PicturesFolder({ f, onChange, onError }: { f: FreshProject; onChange: (f: FreshProject) => void; onError: (e: string) => void }) {
+  const [path, setPath] = useState("");
+  const set = (p: string | null) =>
+    api
+      .freshAssets(f.slug, p)
+      .then((x) => (onChange(x), setPath("")))
+      .catch((e) => onError(errText(e)));
+  const lib = f.assets_library;
+  const n = f.assets_count ?? 0;
+  return (
+    <div className="border-b border-line px-3 py-2.5">
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <Label>Pictures</Label>
+        <div className="flex items-center gap-1">
+          {f.assets_dir && f.assets_exists && (
+            <Button small variant="ghost" icon="folder" onClick={() => api.reveal(f.assets_dir!).catch((e) => onError(errText(e)))}>
+              Open
+            </Button>
+          )}
+          {inTauri() && (
+            <Button
+              small
+              onClick={() =>
+                pickFolder().then((p) => {
+                  if (p) void set(p);
+                })
+              }
+            >
+              Change…
+            </Button>
+          )}
+        </div>
+      </div>
+      <div className="truncate text-[11.5px] text-ink-3" dir="auto" title={f.assets_dir}>
+        {f.assets ? f.assets_dir : `${basename(f.assets_dir) || "uploads"}: this project's own folder`}
+      </div>
+      <div className="mt-1 flex flex-wrap gap-1">
+        <Chip tone={n ? "ok" : "neutral"}>
+          {n} picture{n === 1 ? "" : "s"}
+        </Chip>
+        {lib && lib.untagged > 0 && (
+          <Chip tone="warn" title="Claude writes them when it edits">
+            {lib.untagged} without keywords
+          </Chip>
+        )}
+        {lib && lib.pictures > lib.usable && <Chip tone="bad">{lib.pictures - lib.usable} can't be shown</Chip>}
+      </div>
+      <form
+        className="mt-1.5 flex gap-1.5"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (path.trim()) set(path.trim());
+        }}
+      >
+        <input className={cx(field, "h-[24px] min-w-0 flex-1")} placeholder="another folder: C:\…\assets" value={path} onChange={(e) => setPath(e.target.value)} aria-label="Pictures folder" />
+        <Button small type="submit" disabled={!path.trim()}>
+          Use
+        </Button>
+      </form>
+      {f.assets && (
+        <button className="mt-1 text-[11.5px] text-accent underline" onClick={() => set(null)}>
+          Use this project's own folder instead
+        </button>
+      )}
+      <p className="mt-1.5 text-[11.5px] leading-snug text-ink-3">
+        Transparent PNG / WebP cut-outs of what he talks about (the herbs, the jar, a moon…). Claude writes their keywords and shows each one in front of him on the word that names it. No pictures: captions, route and CTA only.
+      </p>
+    </div>
+  );
+}
+
 function Editor({ slug, openJob }: { slug: string; openJob: (id: number) => void }) {
   const [f, setF] = useState<FreshProject | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [marks, setMarks] = useState<FreshMarks | null>(null);
+  const [draw, setDraw] = useState(false);
   const video = useVideo();
   const { t, seek } = video;
   const jobs = useJobs(slug);
@@ -184,7 +257,10 @@ function Editor({ slug, openJob }: { slug: string; openJob: (id: number) => void
           Claude: {f.usage.claude_runs} run{f.usage.claude_runs === 1 ? "" : "s"}
           {f.usage.cost_usd ? ` · $${f.usage.cost_usd.toFixed(2)}` : ""}
         </Chip>
-        <Button variant="primary" icon="sparkles" disabled={!f.words || !marks || running} onClick={() => save()?.then(() => api.freshRun(slug)).then((r) => r && r.jobs[0] && openJob(r.jobs[0].id)).then(load).catch((e) => setErr(errText(e)))}>
+        <label className="flex items-center gap-1.5 text-[12.5px]" title="Off: ideas he names that no picture shows are listed for you. On: GPT draws some of them (your ChatGPT image allowance).">
+          <input type="checkbox" checked={draw} onChange={(e) => setDraw(e.target.checked)} /> let GPT draw missing pictures
+        </label>
+        <Button variant="primary" icon="sparkles" disabled={!f.words || !marks || running} onClick={() => save()?.then(() => api.freshRun(slug, draw)).then((r) => r && r.jobs[0] && openJob(r.jobs[0].id)).then(load).catch((e) => setErr(errText(e)))}>
           {running ? "Editing…" : f.ad ? "Edit again" : "Edit with Claude"}
         </Button>
       </div>
@@ -238,6 +314,7 @@ function Editor({ slug, openJob }: { slug: string; openJob: (id: number) => void
               </Button>
             )}
           </div>
+          <PicturesFolder f={f} onChange={setF} onError={setErr} />
           <div className="border-b border-line px-3 py-2.5">
             <div className="mb-1 flex items-center justify-between">
               <Label>Sections</Label>
@@ -386,6 +463,25 @@ function Editor({ slug, openJob }: { slug: string; openJob: (id: number) => void
                   ))}
                 </div>
               )}
+              {res && res.missing && res.missing.length > 0 && (
+                <div>
+                  <Label>Ideas with no picture</Label>
+                  <ul className="mt-1 list-disc pl-4">
+                    {res.missing.map((x, i) => (
+                      <li key={i}>
+                        <span className="font-medium">{x.concept}</span>
+                        {x.words && (
+                          <span className="text-ink-3">
+                            {" · "}
+                            <bdi>{x.words}</bdi>
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="text-ink-3">Put a picture for them in the pictures folder, then edit again.</div>
+                </div>
+              )}
               {res && res.unsure.length > 0 && (
                 <div>
                   <Label>Claude was unsure of</Label>
@@ -412,12 +508,13 @@ function NewFresh({ onCreated }: { onCreated: (slug: string, jobId?: number) => 
   const [name, setName] = useState("");
   const [outDir, setOutDir] = useState("");
   const [prompt, setPrompt] = useState("");
+  const [assets, setAssets] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const go = () => {
     setBusy(true);
     api
-      .freshCreate({ footage: footage.trim(), name: name.trim() || undefined, out_dir: outDir.trim() || undefined, whisper_prompt: prompt.trim() || undefined })
+      .freshCreate({ footage: footage.trim(), name: name.trim() || undefined, out_dir: outDir.trim() || undefined, whisper_prompt: prompt.trim() || undefined, assets: assets.trim() || undefined })
       .then((r) => onCreated(r.slug, r.jobs[0]?.id))
       .catch((e) => setErr(errText(e)))
       .finally(() => setBusy(false));
@@ -457,6 +554,15 @@ function NewFresh({ onCreated }: { onCreated: (slug: string, jobId?: number) => 
           <Label>Key words for Whisper (optional: product, organ, symptoms, brand)</Label>
           <input dir="auto" className={cx(input, "mt-1")} value={prompt} onChange={(e) => setPrompt(e.target.value)} />
         </div>
+        <div className="md:col-span-2">
+          <Label>Pictures folder (optional: transparent PNG / WebP cut-outs for this ad; default: a folder inside the project)</Label>
+          <div className="mt-1 flex gap-2">
+            <input className={input} placeholder="C:\…\Product\assets" value={assets} onChange={(e) => setAssets(e.target.value)} />
+            <Button icon="folder" onClick={() => pickFolder().then((p) => p && setAssets(p))}>
+              Browse…
+            </Button>
+          </div>
+        </div>
       </div>
       <Button variant="primary" icon="plus" className="mt-3" disabled={!footage.trim() || busy} onClick={go}>
         {busy ? "Creating…" : "Create and prepare"}
@@ -477,7 +583,7 @@ export default function Fresh({ slug, openJob }: { slug?: string; openJob: (id: 
   if (slug) return <Editor slug={slug} openJob={openJob} />;
   return (
     <div className="space-y-3">
-      <PageHeader icon="wand" title="Fresh edits" sub="One footage, one ad in the camel style: captions, hook / body / CTA transitions, graphics behind the speaker, rendered at −15 LUFS." />
+      <PageHeader icon="wand" title="Fresh edits" sub="One footage, one ad in the camel style: captions, hook / body / CTA transitions, your pictures animated in front of the speaker, rendered at −15 LUFS." />
       <NewFresh
         onCreated={(s, j) => {
           if (j) openJob(j);

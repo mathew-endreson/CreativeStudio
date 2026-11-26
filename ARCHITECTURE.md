@@ -65,6 +65,14 @@ tokens, the `.glass*` classes, the `.backdrop` gradient floor that `index.html` 
 reduced-transparency / reduced-motion fallbacks), `ui.tsx` (every primitive is a piece of glass) and `App.tsx`
 (the shell). Page files only compose the primitives, so a restyle never touches them.
 
+Settings and Setup are written for customers: seven Settings sections (Claude, GPT image generation, Production,
+Performance, Asset library, Projects, Application) and a system readiness panel of eight rows (`desktop/src/readiness.ts`
+folds the engine's environment check into them, with reasons in the customer's words). No file location, tool
+name, model cache, skill or key-storage mechanism is shown, and a saved API key is never displayed; Developer mode
+(Settings → Application, kept per browser in `devmode.ts`) reveals the raw check and the locations. The asset
+library is the shipped illustrations plus each project's own uploads (its Pictures tab: `<slug>_src/img` with its
+`library.json`, prepared by the `pictures` job, 80 MB per file, never overwriting, removable one by one).
+
 ## A judgment step, end to end
 
 1. The UI queues a job (`POST /api/products/{slug}/build`, `/fix`, `/revise`, `/api/fresh/{slug}/run` ...).

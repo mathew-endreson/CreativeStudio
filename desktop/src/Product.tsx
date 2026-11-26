@@ -3,12 +3,14 @@ import { api, errText, type ProductDetail } from "./api";
 import Analysis from "./Analysis";
 import Build from "./Build";
 import { Icon } from "./icons";
+import Pictures from "./Pictures";
 import Proposals from "./Proposals";
 import { Button, Chip, ErrorNote, Loading, Segmented } from "./ui";
 
 const TABS = [
   { id: "analysis", label: "Analysis", icon: "eye" as const },
   { id: "possible", label: "Possible ads", icon: "scissors" as const },
+  { id: "pictures", label: "Pictures", icon: "images" as const },
   { id: "build", label: "Build & results", icon: "share" as const },
 ];
 
@@ -78,7 +80,15 @@ export default function Product({ slug, tab, openJob }: { slug: string; tab: str
         </div>
       </div>
 
-      {tab === "build" ? <Build p={p} reload={reload} openJob={openJob} /> : tab === "possible" ? <Proposals p={p} reload={reload} openJob={openJob} /> : <Analysis p={p} reload={reload} openJob={openJob} />}
+      {tab === "build" ? (
+        <Build p={p} reload={reload} openJob={openJob} />
+      ) : tab === "possible" ? (
+        <Proposals p={p} reload={reload} openJob={openJob} />
+      ) : tab === "pictures" ? (
+        <Pictures p={p} reload={reload} openJob={openJob} />
+      ) : (
+        <Analysis p={p} reload={reload} openJob={openJob} />
+      )}
     </div>
   );
 }

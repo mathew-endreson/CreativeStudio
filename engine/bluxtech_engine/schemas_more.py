@@ -180,3 +180,4 @@ class AddPictures(BaseModel):
     files: list[NewPicture] = []
     asset_bottom: Optional[int] = Field(None, ge=600, le=1800)
     clear_asset_bottom: bool = False
+    reindex: bool = Field(False, description="index the folder again (pictures dropped into it by hand)")

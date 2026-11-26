@@ -9,7 +9,7 @@ const TAGS: { id: Tag; label: string }[] = [
   { id: "source", label: "raw footage" },
   { id: "packshot", label: "packshot" },
   { id: "offer", label: "offer photo" },
-  { id: "illustration", label: "illustration" },
+  { id: "illustration", label: "picture (herb, organ…)" },
   { id: "ignore", label: "ignore" },
 ];
 const input = "h-[28px] w-full rounded-[5px] border border-line bg-well shadow-[inset_0_1px_2px_rgb(0_0_0/0.25)] focus:border-accent focus:outline-none px-2 text-[13px]";
@@ -147,7 +147,7 @@ export default function NewProduct({ openJob }: { openJob: (id: number) => void 
             </div>
             <div>
               <Label>Pictures ({images.length})</Label>
-              <div className="mt-1 rounded-[6px] border border-line">{images.map((e) => <FileRow key={e.path} e={e} />)}{images.length === 0 && <div className="p-3 text-ink-3">No picture: the default EBOX jar is used.</div>}</div>
+              <div className="mt-1 rounded-[6px] border border-line">{images.map((e) => <FileRow key={e.path} e={e} />)}{images.length === 0 && <div className="p-3 text-ink-3">No picture here: add the product's pictures later, in its Pictures tab.</div>}</div>
               {folder.entries.some((e) => e.kind === "folder") && (
                 <div className="mt-2 flex flex-wrap gap-1">
                   {folder.entries
@@ -182,7 +182,7 @@ export default function NewProduct({ openJob }: { openJob: (id: number) => void 
             <input className={`${input} mt-1`} value={adsDir} onChange={(e) => setAdsDir(e.target.value)} />
           </div>
           <div>
-            <Label>GPT drawings per ad</Label>
+            <Label>GPT drawings per run (only when you ask)</Label>
             <input type="number" min={0} max={10} className={`${input} mt-1 w-[90px]`} value={gpt} onChange={(e) => setGpt(Number(e.target.value))} />
           </div>
           <div>
@@ -198,7 +198,7 @@ export default function NewProduct({ openJob }: { openJob: (id: number) => void 
               {busy ? "Creating…" : "Create the project"}
             </Button>
             <Chip>{nAds} video{nAds === 1 ? "" : "s"} to analyse</Chip>
-            {images.some((e) => tags[e.path] && tags[e.path] !== "ignore") && <Chip tone="accent">pictures are cut out after creation (a job)</Chip>}
+            {images.some((e) => tags[e.path] && tags[e.path] !== "ignore") && <Chip tone="accent">pictures are cut out and indexed after creation (a job)</Chip>}
           </div>
         </Card>
       )}
