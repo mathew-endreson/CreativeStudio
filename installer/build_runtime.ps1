@@ -77,7 +77,12 @@ if (-not $SkipDownloads) {
     Pop-Location
     if ($code -ne 0) { throw "npm install hyperframes failed" }
   }
-  Copy-Item -LiteralPath (Join-Path $project "_hyperframes\hyperframes.json") (Join-Path $hf "hyperframes.json") -Force
+  # the HyperFrames project config: the live one from the parent project when this is the owner's PC (mirrored into
+  # the repo so a commit after a build carries it), else the repo's copy (a GitHub Actions runner has only the repo)
+  $hfCfg = Join-Path $project "_hyperframes\hyperframes.json"
+  if (Test-Path -LiteralPath $hfCfg) { Copy-Item -LiteralPath $hfCfg (Join-Path $studio "installer\hyperframes.json") -Force }
+  else { $hfCfg = Join-Path $studio "installer\hyperframes.json" }
+  Copy-Item -LiteralPath $hfCfg (Join-Path $hf "hyperframes.json") -Force
 
   # ---- FFmpeg
   $ff = Join-Path $res "ffmpeg\bin"
@@ -110,15 +115,26 @@ Copy-Item -Recurse -LiteralPath (Join-Path $studio "engine\bluxtech_engine") (Jo
 Get-ChildItem -LiteralPath (Join-Path $eng "bluxtech_engine") -Recurse -Directory -Filter "__pycache__" | Remove-Item -Recurse -Force
 Copy-Item -Recurse -LiteralPath (Join-Path $studio "engine\prompts") (Join-Path $eng "prompts")
 
-# the two skills the engine lays into the workspace (environment.init_workspace): the edit pipeline and the Darija guide
+# the two skills the engine lays into the workspace (environment.init_workspace): the edit pipeline and the Darija
+# guide. The live copies are the parent project's .claude\skills (the owner's PC: Claude Code edits them there);
+# they are mirrored into the repo's skills\ folder so a commit after a build carries them, and a machine without the
+# parent project (a GitHub Actions runner) ships the repo's copy.
 $renamed = Join-Path $res "skill\camel-gpt"     # the edit skill's name until Nov 26 2026: never ship it twice
 if (Test-Path -LiteralPath $renamed) { Remove-Item -Recurse -Force -LiteralPath $renamed }
 foreach ($name in @("bluxstudio-skill", "darijadz")) {
+  $live, $mirror = (Join-Path $project ".claude\skills\$name"), (Join-Path $studio "skills\$name")
+  if (Test-Path -LiteralPath (Join-Path $live "SKILL.md")) {
+    $null = robocopy $live $mirror /MIR /XD __pycache__ .gpt-assets /NFL /NDL /NJH /NJS /NP
+    if ($LASTEXITCODE -ge 8) { throw "mirroring the $name skill into the repo failed (robocopy $LASTEXITCODE)" }
+    $src = $live
+  } elseif (Test-Path -LiteralPath (Join-Path $mirror "SKILL.md")) { $src = $mirror }
+  else { throw "the $name skill is neither in $live nor in $mirror" }
   $skill = Join-Path $res "skill\$name"
   if (Test-Path -LiteralPath $skill) { Remove-Item -Recurse -Force -LiteralPath $skill }
   New-Item -ItemType Directory -Force (Split-Path -Parent $skill) | Out-Null
-  Copy-Item -Recurse -LiteralPath (Join-Path $project ".claude\skills\$name") $skill
-  Get-ChildItem -LiteralPath $skill -Recurse -Directory -Filter "__pycache__" | Remove-Item -Recurse -Force
+  Copy-Item -Recurse -LiteralPath $src $skill
+  Get-ChildItem -LiteralPath $skill -Recurse -Directory | Where-Object { $_.Name -in @("__pycache__", ".gpt-assets") } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+  Write-Output "skill ${name}: from $src"
 }
 
 # ---- the Visual C++ 2022 runtime beside python.exe (onnxruntime, ctranslate2 and OpenCV need msvcp140*.dll; a clean

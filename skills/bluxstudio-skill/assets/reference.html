@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1080, height=1920">
+<!-- Timeline 1 (3 kg camel-thorn honey + 2 gifts): the example ad this template was cut from.
+     Hook 0–3.04 · Body 3.04–24.10 · CTA 24.10–end.
+     Layers: footage → gold particles + delivery route (behind the speaker) → cutout of the speaker →
+     the user's assets (in front, by the caption) → grade → CTA button → Liquid Glass captions → transition light. -->
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<style>
+  @font-face {
+    font-family: "Thmanyah Sans";
+    src: url("assets/fonts/thmanyah-sans-black.otf") format("opentype");
+    font-weight: 900;
+    font-style: normal;
+  }
+  :root {
+    --gold: #ffc93c;
+    --gold-deep: #f0a313;
+    --ice: #bfe8ff;
+    --ink: rgba(24, 16, 8, 0.56);
+  }
+  html, body { margin: 0; padding: 0; background: #000; }
+  #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #000; }
+
+  /* ---------- footage + cutout (moved together) ---------- */
+  .camwrap { position: absolute; inset: 0; transform-origin: 50% 32%; }
+  .camwrap video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  #camA { z-index: 1; }
+  #mg   { z-index: 2; position: absolute; inset: 0; pointer-events: none; direction: ltr; }
+  #camB { z-index: 3; }
+  #assets { z-index: 4; }   /* the user's assets: in front of the speaker, under the grade */
+  #shade {
+    position: absolute; inset: 0; z-index: 4; pointer-events: none;
+    background:
+      linear-gradient(180deg, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0) 20%, rgba(0,0,0,0) 70%, rgba(0,0,0,0.30) 100%),
+      radial-gradient(120% 62% at 50% 52%, rgba(0,0,0,0) 46%, rgba(0,0,0,0.20) 100%);
+  }
+  #grain {
+    position: absolute; inset: 0; z-index: 4; pointer-events: none; opacity: 0.045;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  }
+  #fg { z-index: 5; position: absolute; inset: 0; pointer-events: none; direction: ltr; }
+
+  /* ---------- behind the speaker: gold particles + the delivery route ---------- */
+  .dot {
+    position: absolute; border-radius: 50%; opacity: 0;
+    background: radial-gradient(circle, rgba(255,226,150,0.95) 0%, rgba(255,201,60,0.45) 45%, rgba(255,201,60,0) 72%);
+  }
+  .lbl {
+    position: absolute; left: -60px; right: -60px; top: 186px; text-align: center; direction: rtl;
+    font-family: "Thmanyah Sans", sans-serif; font-weight: 900; font-size: 33px; line-height: 1.15;
+    color: #fff; white-space: nowrap; opacity: 0;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.70), 0 0 3px rgba(0,0,0,0.45);
+  }
+  .lbl em { font-style: normal; color: var(--gold); }
+  #route { position: absolute; left: 0; top: 0; width: 1080px; height: 600px; overflow: visible; }
+
+  /* ---------- CTA (in front) ---------- */
+  #order {
+    position: absolute; left: 0; right: 0; top: 1530px; height: 110px; display: flex; justify-content: center;
+    opacity: 0; visibility: hidden;
+  }
+  #order .btn {
+    position: relative; display: flex; align-items: center; gap: 16px; direction: rtl;
+    height: 96px; padding: 0 44px; border-radius: 999px;
+    background: linear-gradient(180deg, #ffd75e 0%, #f0a313 100%);
+    box-shadow: 0 18px 44px rgba(0,0,0,0.40), inset 0 3px 0 rgba(255,255,255,0.55), inset 0 -4px 0 rgba(140,70,0,0.25);
+    font-family: "Thmanyah Sans", sans-serif; font-weight: 900; font-size: 42px; color: #2a1600;
+  }
+  #order .btn svg { width: 46px; height: 46px; }
+  #order .tap {
+    position: absolute; left: 50%; top: 50%; width: 120px; height: 120px; margin: -60px 0 0 -60px;
+    border-radius: 50%; border: 4px solid rgba(255,255,255,0.9); opacity: 0;
+  }
+  #chev { position: absolute; left: 490px; top: 1660px; width: 100px; height: 190px; overflow: visible; opacity: 0; visibility: hidden; }
+  #chev path { fill: none; stroke: #fff; stroke-width: 9; stroke-linecap: round; stroke-linejoin: round;
+               filter: drop-shadow(0 3px 8px rgba(0,0,0,0.55)); }
+
+  /* ---------- captions: Liquid Glass ---------- */
+  #captions { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
+  .cap { position: absolute; left: 0; right: 0; top: 1262px; display: flex; justify-content: center; }
+  .pill {
+    position: relative; display: flex; flex-direction: row; direction: rtl; align-items: center; gap: 15px;
+    padding: 10px 34px 16px; border-radius: 999px; white-space: nowrap; overflow: hidden; opacity: 0;
+    /* clear glass, not frosted: a light blur keeps the picture behind it readable, colour and light are boosted */
+    background:
+      radial-gradient(120% 150% at 50% -35%, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.06) 55%, rgba(255,255,255,0) 72%),
+      linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0.10) 100%);
+    backdrop-filter: blur(9px) saturate(210%) brightness(1.12) contrast(1.04);
+    -webkit-backdrop-filter: blur(9px) saturate(210%) brightness(1.12) contrast(1.04);
+    border: 1px solid rgba(255,255,255,0.26);
+    box-shadow:
+      inset 0 1.5px 0.5px rgba(255,255,255,0.90),        /* specular top rim */
+      inset 0 -1.5px 1px rgba(255,255,255,0.40),         /* light caught on the lower rim */
+      inset 2px 0 2px -1px rgba(255,255,255,0.35), inset -2px 0 2px -1px rgba(255,255,255,0.35),
+      inset 0 12px 18px -14px rgba(255,255,255,0.70),    /* the lens brightens under the top edge */
+      inset 0 -12px 20px -14px rgba(255,255,255,0.45),   /* refraction band along the bottom */
+      0 14px 34px rgba(0,0,0,0.24), 0 2px 6px rgba(0,0,0,0.14);
+  }
+  /* edge refraction: a rim that is bright top-left and bottom-right and clear in between, like light bent by the edge */
+  .pill::before {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.6px; pointer-events: none;
+    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.12) 30%, rgba(255,255,255,0) 50%,
+      rgba(255,255,255,0.12) 70%, rgba(255,255,255,0.75) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+  }
+  /* the caustic: a soft band of light across the upper half of the glass */
+  .pill::after {
+    content: ""; position: absolute; left: 7%; right: 7%; top: 5%; height: 44%; border-radius: 999px; pointer-events: none;
+    background: linear-gradient(180deg, rgba(255,255,255,0.30), rgba(255,255,255,0));
+  }
+  .pill .sheen {
+    position: absolute; top: -60%; left: 0; width: 30%; height: 220%; pointer-events: none;
+    background: linear-gradient(100deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.38) 50%, rgba(255,255,255,0) 100%);
+  }
+  .word {
+    position: relative; z-index: 1; display: inline-block; flex: 0 0 auto;
+    font-family: "Thmanyah Sans", sans-serif; font-weight: 900; font-size: 52px; line-height: 1.24;
+    color: #fff; opacity: 0.46;
+    text-shadow: 0 2px 9px rgba(0,0,0,0.40), 0 1px 2px rgba(0,0,0,0.32);
+  }
+  .word.key { color: var(--gold); text-shadow: 0 2px 12px rgba(120,60,0,0.45), 0 1px 2px rgba(0,0,0,0.30); }
+
+  /* ---------- transition light ---------- */
+  #fx { position: absolute; inset: 0; z-index: 20; pointer-events: none; overflow: hidden; }
+  #flash {
+    position: absolute; inset: 0; opacity: 0; mix-blend-mode: screen;
+    background: radial-gradient(85% 60% at 50% 38%, rgb(255, 240, 205) 0%, rgb(255, 205, 120) 75%);
+  }
+  .sweep {
+    position: absolute; top: -20%; left: 0; width: 520px; height: 140%; opacity: 0; mix-blend-mode: screen;
+    background: linear-gradient(90deg, rgba(255,214,120,0) 0%, rgba(255,226,160,0.85) 45%, rgba(255,255,240,0.95) 52%, rgba(255,214,120,0) 100%);
+    filter: blur(18px);
+  }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="t1" data-start="0" data-duration="29.458" data-width="1080" data-height="1920" data-fps="24">
+
+  <div id="camA" class="camwrap">
+    <video id="v0" class="clip" src="assets/footage/t1.mov" data-start="0" data-duration="29.458" data-media-start="0"
+      data-track-index="0" data-has-audio="true" playsinline></video>
+  </div>
+
+  <!-- ===================== motion graphics (behind the speaker) ===================== -->
+  <div id="mg">
+    <div id="dots"></div>
+
+    <!-- G9 · delivery route across the top -->
+    <svg id="route" viewBox="0 0 1080 600">
+      <defs>
+        <mask id="routeMask" maskUnits="userSpaceOnUse" x="0" y="0" width="1080" height="600">
+          <path id="routeReveal" d="M80 392 C260 118 820 118 1000 392" fill="none" stroke="#fff" stroke-width="30" stroke-linecap="round"/>
+        </mask>
+      </defs>
+      <path id="routePath" d="M80 392 C260 118 820 118 1000 392" fill="none" stroke="#fff" stroke-width="7"
+            stroke-dasharray="0.1 22" stroke-linecap="round" mask="url(#routeMask)" opacity="0.95"
+            style="filter: drop-shadow(0 2px 6px rgba(0,0,0,0.55))"/>
+      <g class="pin" transform="translate(80 392)"><g class="pinIn">
+        <path d="M0 0 C-11 -15 -17 -23 -17 -32 A17 17 0 0 1 17 -32 C17 -23 11 -15 0 0 Z" fill="#ffc93c" stroke="#fff" stroke-width="3"/>
+        <circle cx="0" cy="-32" r="6.5" fill="#2a1600"/></g></g>
+      <g class="pin" transform="translate(300 192)"><g class="pinIn">
+        <path d="M0 0 C-9 -12 -14 -19 -14 -26 A14 14 0 0 1 14 -26 C14 -19 9 -12 0 0 Z" fill="#fff" stroke="#ffc93c" stroke-width="3"/>
+        <circle cx="0" cy="-26" r="5" fill="#2a1600"/></g></g>
+      <g class="pin" transform="translate(780 192)"><g class="pinIn">
+        <path d="M0 0 C-9 -12 -14 -19 -14 -26 A14 14 0 0 1 14 -26 C14 -19 9 -12 0 0 Z" fill="#fff" stroke="#ffc93c" stroke-width="3"/>
+        <circle cx="0" cy="-26" r="5" fill="#2a1600"/></g></g>
+      <g class="pin" transform="translate(1000 392)"><g class="pinIn">
+        <path d="M0 0 C-11 -15 -17 -23 -17 -32 A17 17 0 0 1 17 -32 C17 -23 11 -15 0 0 Z" fill="#ffc93c" stroke="#fff" stroke-width="3"/>
+        <circle cx="0" cy="-32" r="6.5" fill="#2a1600"/></g></g>
+      <g id="truck" transform="translate(80 392)"><g id="truckBody">
+        <rect x="-50" y="-31" width="100" height="60" rx="30" fill="rgba(24,16,8,0.62)" stroke="rgba(255,255,255,0.45)" stroke-width="1.6"/>
+        <path d="M-32 -14 H6 V12 H-32 Z M6 -4 H19 L28 5 V12 H6 Z" fill="none" stroke="#fff" stroke-width="3.6" stroke-linejoin="round"/>
+        <circle cx="-20" cy="14" r="5.5" fill="#2a1600" stroke="#ffc93c" stroke-width="3"/>
+        <circle cx="17" cy="14" r="5.5" fill="#2a1600" stroke="#ffc93c" stroke-width="3"/>
+      </g></g>
+    </svg>
+    <div class="lbl" id="routeLbl" style="left:780px; right:20px; top:410px; font-size:31px">لجميع <em>الولايات</em></div>
+  </div>
+
+  <div id="camB" class="camwrap">
+    <video id="v1" class="clip" src="assets/footage/t1_cutout.webm" data-start="0" data-duration="29.458" data-media-start="0"
+      data-track-index="1" muted playsinline data-layout-allow-occlusion></video>
+  </div>
+
+  <!-- the user's assets: in front of the speaker, by the caption (filled from ILLUS) -->
+  <div id="assets"></div>
+
+  <div id="shade"></div>
+  <div id="grain"></div>
+
+  <!-- ===================== CTA (in front) ===================== -->
+  <div id="fg">
+    <div id="order">
+      <div class="btn">
+        <svg viewBox="0 0 48 48"><path d="M6 8 H12 L17 32 H38 L42 16 H14" fill="none" stroke="#2a1600" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="40" r="3.4" fill="#2a1600"/><circle cx="35" cy="40" r="3.4" fill="#2a1600"/></svg>
+        <span>اطلب الآن</span>
+        <div class="tap"></div>
+      </div>
+    </div>
+    <svg id="chev" viewBox="0 0 100 190">
+      <path class="cv" d="M22 18 L50 44 L78 18"/>
+      <path class="cv" d="M22 74 L50 100 L78 74"/>
+      <path class="cv" d="M22 130 L50 156 L78 130"/>
+    </svg>
+  </div>
+
+  <div id="captions"></div>
+
+  <div id="fx">
+    <div id="flash"></div>
+    <div class="sweep" id="sweep1"></div>
+    <div class="sweep" id="sweep2"></div>
+  </div>
+
+  <!-- ===================== sound accents (bundled HyperFrames SFX) ===================== -->
+  <audio id="s1" class="clip" src="assets/sfx/whoosh-short.mp3" data-start="2.84" data-duration="0.57" data-track-index="3" data-volume="0.32"></audio>
+  <audio id="s5" class="clip" src="assets/sfx/ping.mp3" data-start="21.72" data-duration="1.32" data-track-index="5" data-volume="0.13"></audio>
+  <audio id="s6" class="clip" src="assets/sfx/whoosh.mp3" data-start="23.92" data-duration="0.57" data-track-index="3" data-volume="0.32"></audio>
+  <audio id="s7" class="clip" src="assets/sfx/click-soft.mp3" data-start="27.66" data-duration="0.37" data-track-index="5" data-volume="0.40"></audio>
+</div>
+
+<script>/*ASSET-MOTION*/</script>
+<script>
+  const ID = "t1";
+  const DUR = 29.458;
+  const T_BODY = 3.04;   // hook -> body
+  const T_CTA = 24.10;   // body -> CTA
+
+  // ---------- captions: [word, spoken at (s), key?] + speech end, measured on the audio ----------
+  const CH = [
+    { w: [["الجودة", 0.35, 1], ["عند", 0.98], ["إي", 1.18], ["بوكس", 1.34]], end: 1.55 },
+    { w: [["ما", 2.00], ["تلعبش", 2.14], ["بالجودة", 2.58, 1]], end: 3.00 },
+    { w: [["يعني", 3.28], ["راح", 3.52], ["يكون", 3.74], ["عندك", 3.98]], end: 4.30 },
+    { w: [["3", 4.53, 1], ["كيلو", 4.84, 1], ["عسل", 5.20]], end: 5.50 },
+    { w: [["نزيد", 5.83], ["معاهم", 6.08], ["هديتين", 6.65, 1]], end: 7.43 },
+    { w: [["من", 7.83], ["نفس", 7.95], ["النبتة", 8.18, 1]], end: 8.62 },
+    { w: [["الهدية", 8.78, 1], ["هنا", 9.80]], end: 10.00 },
+    { w: [["راح", 10.00], ["ينعطالكم", 10.30], ["200", 10.82, 1], ["غرام", 11.28, 1]], end: 11.70 },
+    { w: [["بذور", 12.33], ["شوك", 12.70, 1], ["الإبل", 12.94, 1]], end: 13.44 },
+    { w: [["ونزيدولكم", 13.44], ["30", 13.94, 1], ["مل", 14.38, 1], ["زيت", 15.10, 1]], end: 15.43 },
+    { w: [["بذور", 15.75], ["شوك", 16.66, 1], ["الإبل", 16.92, 1]], end: 17.30 },
+    { w: [["معصور", 17.32, 1], ["على", 17.90], ["البارد", 18.04, 1]], end: 18.32 },
+    { w: [["هذا", 18.60], ["قليل", 18.95, 1], ["وين", 19.55], ["تلقاه", 19.76]], end: 20.10 },
+    { w: [["بهذه", 20.30], ["الطريقة", 20.52]], end: 20.95 },
+    { w: [["راح", 20.95], ["تكون", 21.12], ["عندك", 21.38], ["قنبلة", 21.75, 1]], end: 22.35 },
+    { w: [["لتنظيف", 22.48], ["الكبد", 23.35, 1], ["بإذن", 23.80], ["الله", 24.05]], end: 24.27 },
+    { w: [["التوصيل", 24.60], ["لجميع", 25.05, 1], ["الولايات", 25.45, 1]], end: 26.00 },
+    { w: [["وإذا", 26.05], ["حبيت", 26.25], ["تدير", 26.55], ["طلبية", 26.78, 1]], end: 27.21 },
+    { w: [["ما", 27.24], ["عليك", 27.34], ["غير", 27.53], ["تضغط", 27.67, 1], ["في", 27.98], ["الزر", 28.07, 1]], end: 28.30 },
+    { w: [["أسفل", 28.40, 1], ["الفيديو", 28.67, 1]], end: 29.03 },
+  ];
+  CH.forEach((c, i) => {
+    const t0 = c.w[0][1];
+    const prevOut = i > 0 ? CH[i - 1].out : 0;
+    c.in = Math.max(prevOut, t0 - 0.10);
+    const next = CH[i + 1];
+    if (next) {
+      const gap = next.w[0][1] - c.end;
+      c.out = gap <= 0.9 ? next.w[0][1] - 0.10 : c.end + 0.40;
+    } else {
+      c.out = DUR - 0.06;
+    }
+  });
+
+  const layer = document.getElementById("captions");
+  const caps = CH.map((c) => {
+    const cap = document.createElement("div");
+    cap.className = "cap";
+    const pill = document.createElement("div");
+    pill.className = "pill";
+    const sheen = document.createElement("span");
+    sheen.className = "sheen";
+    pill.appendChild(sheen);
+    const words = c.w.map(([text, , key]) => {
+      const s = document.createElement("span");
+      s.className = "word" + (key ? " key" : "");
+      s.textContent = text;
+      pill.appendChild(s);
+      return s;
+    });
+    cap.appendChild(pill);
+    layer.appendChild(cap);
+    return { cap, pill, sheen, words, data: c };
+  });
+
+  // ---------- ambient light particles (seeded, behind the speaker) ----------
+  let seed = 7;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  const dotsEl = document.getElementById("dots");
+  const dots = [];
+  for (let i = 0; i < 18; i++) {
+    const d = document.createElement("div");
+    d.className = "dot";
+    const size = 10 + rnd() * 22;
+    const side = i % 3;
+    const x = side === 0 ? 20 + rnd() * 260 : side === 1 ? 800 + rnd() * 260 : 280 + rnd() * 520;
+    const y = side === 2 ? 30 + rnd() * 260 : 120 + rnd() * 760;
+    d.style.width = size + "px"; d.style.height = size + "px";
+    d.style.left = x + "px"; d.style.top = y + "px";
+    dotsEl.appendChild(d);
+    dots.push({ el: d, drift: 70 + rnd() * 110, sway: (rnd() - 0.5) * 50, peak: 0.25 + rnd() * 0.35, phase: rnd() * 4 });
+  }
+
+  // ---------- the user's assets for this product: written by asset_lib.py place ([] = none) ----------
+  // Same beat format as remixes; the motion lives in asset_motion.js (pasted in above by new_project.py):
+  // {img, w, h, x, top, in, out (gone by), breathe?: [t], shake?: [t], keys?: [t]}
+  const ILLUS = /*ILLUS*/[]/*END-ILLUS*/;
+  const illusNodes = CamelAssets.mount(document.getElementById("assets"), ILLUS);
+
+  function build() {
+    const tl = gsap.timeline({ paused: true });
+    const q = (s, root) => (root || document).querySelector(s);
+    const qa = (s, root) => Array.from((root || document).querySelectorAll(s));
+
+    // ================= camera: footage + cutout move as one =================
+    const cams = ["#camA", "#camB"];
+    tl.set(cams, { scale: 1.16, filter: "blur(0px)", transformOrigin: "50% 32%" }, 0);
+    // hook: quick settle-in, then a slow push
+    tl.to(cams, { scale: 1.08, duration: 0.8, ease: "expo.out" }, 0);
+    tl.to(cams, { scale: 1.10, duration: 2.04, ease: "sine.inOut" }, 0.8);
+    // T1 (3.04): whip-zoom in, snap out to the wide body framing
+    tl.to(cams, { scale: 1.17, filter: "blur(7px)", duration: 0.20, ease: "power2.in" }, T_BODY - 0.20);
+    tl.to(cams, { scale: 1.0, filter: "blur(0px)", duration: 0.46, ease: "expo.out" }, T_BODY);
+    // body: slow push, one punch on "قنبلة"
+    tl.to(cams, { scale: 1.045, duration: 21.70 - (T_BODY + 0.46), ease: "sine.inOut" }, T_BODY + 0.46);
+    tl.to(cams, { scale: 1.08, duration: 0.18, ease: "power3.out" }, 21.70);
+    tl.to(cams, { scale: 1.05, duration: 1.9, ease: "sine.inOut" }, 21.88);
+    // T2 (24.10): punch in with blur, settle tighter for the CTA
+    tl.to(cams, { scale: 1.14, filter: "blur(7px)", duration: 0.20, ease: "power2.in" }, T_CTA - 0.20);
+    tl.to(cams, { scale: 1.08, filter: "blur(0px)", duration: 0.50, ease: "expo.out" }, T_CTA);
+    tl.to(cams, { scale: 1.11, duration: DUR - (T_CTA + 0.5), ease: "sine.inOut" }, T_CTA + 0.5);
+
+    // ================= transitions: light sweep + flash =================
+    const sw1 = q("#sweep1"), sw2 = q("#sweep2"), flash = q("#flash");
+    tl.set([sw1, sw2], { rotation: 16 }, 0);
+    // T1 sweeps right -> left (reading direction)
+    tl.fromTo(sw1, { x: 1250, opacity: 0 }, { x: -760, opacity: 1, duration: 0.55, ease: "power2.inOut" }, T_BODY - 0.26);
+    tl.to(sw1, { opacity: 0, duration: 0.12, ease: "none" }, T_BODY + 0.18);
+    tl.fromTo(flash, { opacity: 0 }, { opacity: 0.42, duration: 0.06, ease: "none", immediateRender: false }, T_BODY - 0.04);
+    tl.to(flash, { opacity: 0, duration: 0.30, ease: "power2.out" }, T_BODY + 0.02);
+    // T2 sweeps left -> right
+    tl.fromTo(sw2, { x: -760, opacity: 0 }, { x: 1250, opacity: 1, duration: 0.55, ease: "power2.inOut" }, T_CTA - 0.26);
+    tl.to(sw2, { opacity: 0, duration: 0.12, ease: "none" }, T_CTA + 0.18);
+    tl.fromTo(flash, { opacity: 0 }, { opacity: 0.50, duration: 0.06, ease: "none", immediateRender: false }, T_CTA - 0.04);
+    tl.to(flash, { opacity: 0, duration: 0.34, ease: "power2.out" }, T_CTA + 0.02);
+
+    // ================= ambient particles =================
+    dots.forEach((d, i) => {
+      const t0 = d.phase * 0.5;
+      tl.fromTo(d.el, { opacity: 0, y: 0, x: 0 },
+        { opacity: d.peak, duration: 1.2, ease: "sine.out" }, t0);
+      tl.to(d.el, { y: -d.drift, x: d.sway, duration: DUR - t0, ease: "none" }, t0);
+      tl.to(d.el, { opacity: d.peak * 0.35, duration: 2.6, ease: "sine.inOut", yoyo: true, repeat: Math.floor((DUR - t0 - 2) / 2.6) }, t0 + 1.2);
+    });
+
+    // ================= label helper (the delivery route's label) =================
+    function lblIn(el, t) {
+      tl.fromTo(el, { opacity: 0, y: 14, filter: "blur(6px)" },
+        { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.36, ease: "power3.out" }, t);
+    }
+
+    // ---------- G9 · delivery route ----------
+    { const path = q("#routePath"), reveal = q("#routeReveal"), truck = q("#truck");
+      const L = path.getTotalLength();
+      reveal.style.strokeDasharray = (L + 4) + " " + (L + 4);
+      tl.set(reveal, { strokeDashoffset: L + 4 }, 0);
+      tl.set("#route", { opacity: 1 }, 0);
+      tl.set(truck, { opacity: 0 }, 0);
+      const pins = qa("#route .pinIn");
+      tl.set(pins, { opacity: 0, scale: 0, transformOrigin: "50% 100%" }, 0);
+      const tA = 24.52, tB = 25.95;
+      tl.to(reveal, { strokeDashoffset: 0, duration: tB - tA, ease: "power1.inOut" }, tA);
+      tl.to(truck, { opacity: 1, duration: 0.2, ease: "none" }, tA);
+      const o = { p: 0 };
+      const place = () => {
+        const s = Math.max(0, Math.min(1, o.p)) * L;
+        const a = path.getPointAtLength(s);
+        const b = path.getPointAtLength(Math.min(L, s + 1));
+        const ang = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+        truck.setAttribute("transform", `translate(${a.x.toFixed(2)} ${a.y.toFixed(2)}) rotate(${(ang * 0.35).toFixed(2)})`);
+      };
+      place();
+      tl.to(o, { p: 1, duration: tB - tA, ease: "power1.inOut", onUpdate: place }, tA);
+      [tA - 0.04, tA + 0.42, tA + 0.98, tB - 0.06].forEach((t, i) => {
+        tl.to(pins[i], { opacity: 1, scale: 1, duration: 0.38, ease: "back.out(2.8)" }, t);
+      });
+      lblIn(q("#routeLbl"), 25.40);
+      tl.to(["#route", "#routeLbl"], { opacity: 0, filter: "blur(6px)", duration: 0.35, ease: "power2.in" }, 26.20); }
+
+    // ---------- CTA button + arrows (front) ----------
+    { const order = q("#order"), btn = q("#order .btn"), tap = q("#order .tap"), chev = q("#chev");
+      tl.fromTo(order, { autoAlpha: 0, y: 40, scale: 0.8 },
+        { autoAlpha: 1, y: 0, scale: 1, duration: 0.5, ease: "back.out(1.8)" }, 27.30);
+      tl.to(btn, { scale: 0.92, duration: 0.09, ease: "power2.in" }, 27.66);
+      tl.to(btn, { scale: 1, duration: 0.30, ease: "back.out(3)" }, 27.75);
+      tl.set(tap, { opacity: 0 }, 0);
+      tl.fromTo(tap, { opacity: 0.9, scale: 0.3 }, { opacity: 0, scale: 3.2, duration: 0.6, ease: "power2.out", immediateRender: false }, 27.68);
+      tl.fromTo(tap, { opacity: 0.7, scale: 0.3 }, { opacity: 0, scale: 3.2, duration: 0.6, ease: "power2.out", immediateRender: false }, 28.10);
+      tl.fromTo(chev, { autoAlpha: 0, y: -20 }, { autoAlpha: 1, y: 0, duration: 0.3, ease: "power2.out" }, 28.30);
+      const cvs = qa("#chev .cv");
+      tl.set(cvs, { opacity: 0.25 }, 0);
+      for (let k = 0; k < 4; k++) {
+        cvs.forEach((c, i) => {
+          tl.to(c, { opacity: 1, y: 8, duration: 0.14, ease: "power2.out" }, 28.34 + k * 0.28 + i * 0.07);
+          tl.to(c, { opacity: 0.25, y: 0, duration: 0.18, ease: "power2.in" }, 28.48 + k * 0.28 + i * 0.07);
+        });
+      } }
+
+    // ================= the user's assets (in front of the speaker, by the caption) =================
+    CamelAssets.animate(tl, ILLUS, illusNodes);
+
+    // ================= captions =================
+    caps.forEach(({ cap, pill, sheen, words, data }) => {
+      const tIn = data.in, tOut = data.out;
+      // Liquid Glass: the pill blooms in like a drop settling (wide and flat -> round), light glides across it
+      tl.fromTo(cap, { scaleX: 0.76, scaleY: 0.58, y: 24 },
+        { scaleX: 1, scaleY: 1, y: 0, duration: 0.62, ease: "elastic.out(1, 0.7)" }, tIn);
+      tl.fromTo(pill, { opacity: 0 }, { opacity: 1, duration: 0.14, ease: "power1.out" }, tIn);
+      tl.fromTo(sheen, { xPercent: -140 }, { xPercent: 340, duration: 0.9, ease: "power2.inOut" }, tIn + 0.05);
+      if (tOut - tIn > 1.0) tl.to(cap, { y: -5, duration: tOut - tIn - 0.5, ease: "sine.inOut" }, tIn + 0.45);
+      words.forEach((el, k) => {
+        const tw = Math.max(tIn + 0.02, data.w[k][1] - 0.04);
+        tl.fromTo(el, { opacity: 0.46, scale: 1, y: 0 },
+          { opacity: 1, scale: 1.12, y: -5, duration: 0.11, ease: "power2.out" }, tw);
+        tl.to(el, { scale: 1, y: 0, duration: 0.22, ease: "back.out(2.4)" }, tw + 0.11);
+      });
+      tl.to(pill, { opacity: 0, duration: 0.12, ease: "power1.in" }, tOut - 0.12);
+      tl.to(cap, { scaleX: 1.05, scaleY: 0.86, y: -12, duration: 0.12, ease: "power1.in" }, tOut - 0.12);
+    });
+
+    tl.set({}, {}, DUR);
+    window.__timelines = window.__timelines || {};
+    window.__timelines[ID] = tl;
+  }
+
+  // shrink any caption that would pass 900 px
+  function fitCaptions() {
+    caps.forEach(({ pill, words }) => {
+      let f = 52;
+      for (let pass = 0; pass < 4; pass++) {
+        const w = pill.getBoundingClientRect().width;
+        if (w <= 900) break;
+        const sum = words.reduce((a, el) => a + el.getBoundingClientRect().width, 0);
+        f = Math.max(38, Math.floor(f * (900 - (w - sum)) / sum));
+        words.forEach((el) => { el.style.fontSize = f + "px"; });
+      }
+    });
+    build();
+  }
+  document.fonts.load('900 52px "Thmanyah Sans"', "الجودة شوك الإبل 200 30").then(fitCaptions, fitCaptions);
+</script>
+</body>
+</html>

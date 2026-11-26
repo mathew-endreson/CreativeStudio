@@ -1,0 +1,16 @@
+{
+ "id": "mix01-h10-b5",
+ "t_body": 3.067,
+ "dur": 34.7,
+ "remix": true,
+ "asset_bottom": 1260,
+ "sfx": [
+  {"src": "pop.mp3", "t": 5.10, "vol": 0.12},
+  {"src": "pop.mp3", "t": 15.18, "vol": 0.12}
+ ],
+ "beats": [
+  {"kind": "asset", "lib": "seeds-bag", "side": "C", "in": 9.62, "out": 12.05, "keys": [9.95]},
+  {"kind": "asset", "lib": "liver", "side": "C", "in": 15.10, "out": 17.20, "keys": [15.40, 16.44]},
+  {"kind": "asset", "lib": "snowflake", "side": "C", "in": 19.05, "out": 21.80, "breathe": [19.34]}
+ ]
+}
