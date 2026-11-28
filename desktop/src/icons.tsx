@@ -40,6 +40,12 @@ const P: Record<string, string> = {
   trash: "M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6",
   up: "m18 15-6-6-6 6",
   down: "m6 9 6 6 6-6",
+  chevronLeft: "m15 18-6-6 6-6",
+  arrowLeft: "M19 12H5M12 19l-7-7 7-7",
+  minus: "M5 12h14",
+  clock: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 7v5l3 2",
+  upload: "M12 16V4M7 9l5-5 5 5M4 20h16",
+  download: "M12 4v12M7 11l5 5 5-5M4 20h16",
 };
 
 export type IconName = keyof typeof P;
@@ -65,20 +71,4 @@ export function Icon({ name, size = 16, className, strokeWidth = 1.7, ...rest }:
   );
 }
 
-/** The brand mark: a rounded tile with the B, in Final Cut's clapper-tile spirit. */
-export function BrandMark({ size = 26 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
-      <defs>
-        <linearGradient id="bm" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#f59a3c" />
-          <stop offset="0.55" stopColor="#c2570c" />
-          <stop offset="1" stopColor="#7a2f05" />
-        </linearGradient>
-      </defs>
-      <rect width="32" height="32" rx="8" fill="url(#bm)" />
-      <rect x="0.5" y="0.5" width="31" height="31" rx="7.5" fill="none" stroke="#fff" strokeOpacity="0.25" />
-      <path d="M11 8h7a4.5 4.5 0 0 1 0 9h-7zm0 9h8a4.5 4.5 0 0 1 0 9h-8z" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinejoin="round" />
-    </svg>
-  );
-}
+export { BrandMark } from "./brand";

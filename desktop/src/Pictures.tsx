@@ -17,7 +17,7 @@ const checker: CSSProperties = {
   backgroundImage: "conic-gradient(rgb(128 128 128 / 0.2) 25%, transparent 0 50%, rgb(128 128 128 / 0.2) 0 75%, transparent 0)",
   backgroundSize: "16px 16px",
 };
-const input = cx(field, "h-[28px]");
+const input = field;
 
 function keywordLine(p: Picture) {
   const k = p.keywords ?? {};
@@ -27,8 +27,8 @@ function keywordLine(p: Picture) {
 function PictureCard({ slug, pics, p, onRemove }: { slug: string; pics: ProductPictures; p: Picture; onRemove?: (id: string) => void }) {
   const kw = keywordLine(p);
   return (
-    <Card className={cx("group relative p-2", (p.problem || p.missing) && "opacity-70")}>
-      <div className="grid aspect-square place-items-center overflow-hidden rounded-[7px] bg-well" style={checker}>
+    <Card className={cx("group relative p-3", (p.problem || p.missing) && "opacity-70")}>
+      <div className="grid aspect-square place-items-center overflow-hidden rounded-[14px] bg-well" style={checker}>
         {!p.missing && <img src={pictureUrl(slug, pics, p)} alt={p.id} className="max-h-full max-w-full object-contain drop-shadow-[0_8px_10px_rgb(0_0_0/0.35)]" loading="lazy" />}
       </div>
       {onRemove && (
@@ -36,15 +36,15 @@ function PictureCard({ slug, pics, p, onRemove }: { slug: string; pics: ProductP
           onClick={() => onRemove(p.id)}
           aria-label={`Remove ${p.id}`}
           title="Remove this picture from the project"
-          className="glass-2 absolute top-3 right-3 grid h-6 w-6 place-items-center rounded-full text-ink-2 opacity-0 transition-opacity group-hover:opacity-100 hover:text-bad focus-visible:opacity-100"
+          className="glass-pill absolute top-4 right-4 grid h-[32px] w-[32px] place-items-center text-ink-2 opacity-0 transition-opacity group-hover:opacity-100 hover:text-bad focus-visible:opacity-100"
         >
           <Icon name="trash" size={13} />
         </button>
       )}
-      <div className="mt-2 truncate font-mono text-[12px]" title={p.id}>
+      <div className="mt-2.5 truncate font-mono text-[12px]" title={p.id}>
         {p.id}
       </div>
-      <div className="mt-1 flex flex-wrap gap-1">
+      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
         {p.missing ? (
           <Chip tone="bad">file gone</Chip>
         ) : p.problem ? (
@@ -137,16 +137,13 @@ export default function Pictures({ p, reload, openJob }: { p: ProductDetail; rel
   const bottomOk = bottom.trim() === "" || (Number.isInteger(bottomN) && bottomN >= 600 && bottomN <= 1800);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-[10px]">
       {err && <ErrorNote>{err}</ErrorNote>}
-      <Card className="p-3">
-        <div className="flex flex-wrap items-start gap-3">
-          <span className="clip grid h-8 w-8 shrink-0 place-items-center rounded-[6px] bg-surface-3 text-ink-2">
-            <Icon name="images" size={15} />
-          </span>
+      <Card className="p-5">
+        <div className="flex flex-wrap items-start gap-4">
           <div className="min-w-[260px] flex-1">
-            <div className="font-semibold">The product's pictures</div>
-            <p className="mt-0.5 max-w-[760px] text-[12.5px] text-ink-2">
+            <div className="text-[14px] font-semibold">The product's pictures</div>
+            <p className="mt-0.5 max-w-[760px] text-[12.5px] text-ink-3">
               Transparent PNG / WebP cut-outs of what he talks about: the herbs, the jar, a moon for sleep, a liver. When an ad is built, Claude looks at each new picture and writes the words that name it. Each one then grows out of the caption in front of him on that word. A picture with a background is cut out when you add it.
             </p>
             {pics.own_library && pics.dir && (
@@ -158,7 +155,7 @@ export default function Pictures({ p, reload, openJob }: { p: ProductDetail; rel
               </div>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-3">
             {pics.own_library && (
               <>
                 <Chip tone={pics.counts.usable ? "ok" : "neutral"}>
@@ -182,19 +179,19 @@ export default function Pictures({ p, reload, openJob }: { p: ProductDetail; rel
       <ActiveJobs jobs={active} openJob={openJob} />
 
       {!pics.own_library && (
-        <div className="flex gap-2 rounded-[9px] border border-warn/40 bg-warn/10 px-3 py-2 text-[12.5px]">
+        <div className="flex gap-2 rounded-[14px] bg-well px-4 py-3 text-[12.5px] text-ink-2">
           <Icon name="alert" size={15} className="mt-px shrink-0 text-warn" />
           <div>
             This product has no picture folder of its own yet: its earlier ads drew from the{" "}
-            <a href="#/library" className="text-accent underline">
-              GPT library
+            <a href="#/library" className="text-accent-text underline">
+              library
             </a>
             . Add its pictures below or press Re-index: the product then gets a picture folder of its own, and new ads use only the pictures in it.
           </div>
         </div>
       )}
 
-      <Card className="p-3">
+      <Card className="p-5">
         <div className="flex flex-wrap items-center gap-2">
           <Label>Add pictures</Label>
           <div className="flex-1" />
@@ -222,7 +219,7 @@ export default function Pictures({ p, reload, openJob }: { p: ProductDetail; rel
         </form>
 
         {browse && (
-          <div className="mt-2 rounded-[8px] border border-line p-2">
+          <div className="mt-3 rounded-[14px] border border-line p-3">
             <div className="mb-1.5 flex min-w-0 items-center gap-2 text-[11.5px] text-ink-3">
               <code className="min-w-0 flex-1 truncate">{browse.path}</code>
               {browse.parent && (
@@ -236,7 +233,7 @@ export default function Pictures({ p, reload, openJob }: { p: ProductDetail; rel
                 {browse.entries
                   .filter((e) => e.kind === "folder")
                   .map((e) => (
-                    <button key={e.path} className="rounded-full border border-line px-2 py-px text-[12px] hover:border-accent" onClick={() => openFolder(e.path)}>
+                    <button key={e.path} type="button" className="press glass-pill h-[30px] px-3 text-[12px] hover:bg-white/[0.1]" onClick={() => openFolder(e.path)}>
                       {e.name}/
                     </button>
                   ))}
@@ -251,7 +248,8 @@ export default function Pictures({ p, reload, openJob }: { p: ProductDetail; rel
                     <button
                       key={e.path}
                       onClick={() => (on ? setStaged((s) => s.filter((x) => x.file !== e.path)) : stage([e.path]))}
-                      className={cx("rounded-[7px] p-1 text-left ring-2 transition-shadow", on ? "bg-sel/15 ring-sel" : "ring-transparent hover:ring-line-strong")}
+                      type="button"
+                      className={cx("press rounded-[12px] p-1 text-left ring-2 transition-shadow", on ? "bg-accent-soft ring-accent" : "ring-transparent hover:ring-line-strong")}
                       title={on ? "In the list: click to take it out" : "Click to add it to the list"}
                     >
                       <img src={thumbUrl(e.path, 160)} alt="" className="aspect-square w-full rounded-[5px] bg-well object-contain" loading="lazy" />
@@ -267,7 +265,7 @@ export default function Pictures({ p, reload, openJob }: { p: ProductDetail; rel
         )}
 
         {staged.length > 0 && (
-          <div className="mt-2 rounded-[8px] border border-line">
+          <div className="mt-3 overflow-hidden rounded-[14px] border border-line">
             {staged.map((s, i) => (
               <div key={s.file} className="flex flex-wrap items-center gap-2 border-b border-line px-2 py-1.5 last:border-b-0">
                 <img src={thumbUrl(s.file, 96)} alt="" className="h-[44px] w-[44px] rounded-[4px] bg-well object-contain" loading="lazy" />
@@ -282,7 +280,7 @@ export default function Pictures({ p, reload, openJob }: { p: ProductDetail; rel
                   ))}
                 </select>
                 <input className={cx(input, "w-[160px]")} value={s.label} onChange={(e) => change(i, { label: e.target.value })} placeholder="file name in the folder" title="Its file name in the folder (Latin letters; the first keyword)" aria-label="Name" />
-                <button className="grid h-6 w-6 place-items-center rounded-[6px] text-ink-3 hover:bg-surface-3 hover:text-ink" onClick={() => setStaged((x) => x.filter((_, j) => j !== i))} aria-label={`Take ${basename(s.file)} out of the list`}>
+                <button type="button" className="grid h-[32px] w-[32px] place-items-center rounded-full text-ink-3 hover:bg-hover hover:text-ink" onClick={() => setStaged((x) => x.filter((_, j) => j !== i))} aria-label={`Take ${basename(s.file)} out of the list`}>
                   <Icon name="x" size={13} />
                 </button>
               </div>
@@ -302,8 +300,8 @@ export default function Pictures({ p, reload, openJob }: { p: ProductDetail; rel
         )}
       </Card>
 
-      <Card className="p-3">
-        <div className="flex flex-wrap items-center gap-2">
+      <Card className="p-5">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="min-w-[260px] flex-1">
             <Label>Height in remixes</Label>
             <div className="mt-0.5 text-[12.5px] text-ink-2">
@@ -323,7 +321,7 @@ export default function Pictures({ p, reload, openJob }: { p: ProductDetail; rel
         </Empty>
       )}
       {pics.own_library && live.length > 0 && (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-3">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-[10px]">
           {pics.assets.map((a) => (
             <PictureCard key={a.id} slug={slug} pics={pics} p={a} onRemove={pics.own_library ? remove : undefined} />
           ))}

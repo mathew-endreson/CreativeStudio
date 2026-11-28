@@ -17,10 +17,10 @@ const GROUPS: { id: string; label: string; items: string[]; ready?: string }[] =
 
 /** Why a row is not ready, in the customer's terms. The engine's own detail may name files and folders. */
 const WHY: Record<string, string> = {
-  python: "The media tools are damaged: reinstall BluxTech Studio.",
-  ffmpeg: "The media tools are missing: reinstall BluxTech Studio.",
-  ffprobe: "The media tools are missing: reinstall BluxTech Studio.",
-  node: "The renderer is missing: reinstall BluxTech Studio.",
+  python: "The media tools are damaged: reinstall the app.",
+  ffmpeg: "The media tools are missing: reinstall the app.",
+  ffprobe: "The media tools are missing: reinstall the app.",
+  node: "The renderer is missing: reinstall the app.",
   hyperframes: "The renderer is installed by Setup.",
   chrome: "The renderer's browser is fetched by Setup (about 270 MB, once).",
   whisper: "The speech model is fetched by Setup (about 1.6 GB, once).",

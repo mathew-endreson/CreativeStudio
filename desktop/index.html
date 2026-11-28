@@ -3,20 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BluxTech Studio</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23c2570c'/%3E%3Cpath d='M11 8h7a4.5 4.5 0 0 1 0 9h-7zm0 9h8a4.5 4.5 0 0 1 0 9h-8z' fill='none' stroke='%23fff' stroke-width='2.6' stroke-linejoin='round'/%3E%3C/svg%3E" />
+    <title>CreativeStudio</title>
     <script>
-      // set the theme before first paint
-      (function () {
-        try {
-          var t = localStorage.getItem("theme") || "dark";
-          var dark = t === "dark" || (t === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
-          document.documentElement.classList.toggle("dark", dark);
-        } catch (e) {}
-      })();
+      // the desktop shell sets this before any script runs: the window sits on the OS material (Mica / Acrylic)
+      if (window.__CS_VIBRANCY__) document.documentElement.dataset.vibrancy = "1";
     </script>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' rx='46' fill='%23f2f2f5'/%3E%3Crect x='36' y='36' width='84' height='34' rx='17' fill='%232a2a2e'/%3E%3Ccircle cx='152' cy='53' r='18' fill='%239b3dc8'/%3E%3Crect x='36' y='84' width='128' height='34' rx='17' fill='%232a2a2e'/%3E%3Crect x='36' y='132' width='128' height='34' rx='17' fill='%232a2a2e'/%3E%3Crect x='36' y='84' width='44' height='82' rx='17' fill='%232a2a2e'/%3E%3C/svg%3E"
+    />
   </head>
-  <body>
+  <body data-glow="warm">
     <div class="backdrop" aria-hidden="true"></div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

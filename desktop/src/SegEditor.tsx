@@ -24,14 +24,12 @@ function Modal({ title, onClose, children, wide }: { title: string; onClose: () 
       <div
         role="dialog"
         aria-label={title}
-        className={cx("glass flex max-h-[94vh] w-full flex-col overflow-hidden rounded-[14px]", wide ? "max-w-[1240px]" : "max-w-[560px]")}
+        className={cx("glass glass-strong flex max-h-[94vh] w-full flex-col overflow-hidden rounded-[24px] bg-[rgb(18_18_22/0.85)]", wide ? "max-w-[1240px]" : "max-w-[560px]")}
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="flex h-[36px] shrink-0 items-center gap-2 border-b border-line bg-surface-2/60 px-3">
-          <button onClick={onClose} aria-label="Close" title="Close (Esc)" className="grid h-3 w-3 place-items-center rounded-full bg-[#ff5f57] text-transparent hover:text-black/60">
-            <Icon name="x" size={8} strokeWidth={3} />
-          </button>
-          <div className="min-w-0 flex-1 truncate text-center text-[12.5px] font-semibold text-ink-2">{title}</div>
+        <header className="flex h-[44px] shrink-0 items-center gap-3 border-b border-line px-4">
+          <button type="button" onClick={onClose} aria-label="Close" title="Close (Esc)" className="traffic" style={{ background: "#ff5f57" }} />
+          <div className="min-w-0 flex-1 truncate text-center text-[13px] font-semibold text-ink">{title}</div>
           <span className="w-3" />
         </header>
         {children}
@@ -115,8 +113,8 @@ function CutInspector({ slug, row, edge, data, onSet }: { slug: string; row: Row
       <div>
         <div className="flex gap-1">
           {[-3, -2, -1, 0, 1, 2, 3].map((n) => (
-            <button key={n} onClick={() => onSet(snap((f + n) / 30))} title={`Cut before frame ${f + n}`}
-              className={cx("relative overflow-hidden rounded-[3px] ring-2", n === 0 ? "ring-sel" : "ring-transparent hover:ring-ink-3", n === 0 && "ml-2")}>
+            <button key={n} type="button" onClick={() => onSet(snap((f + n) / 30))} title={`Cut before frame ${f + n}`}
+              className={cx("relative overflow-hidden rounded-[6px] ring-2", n === 0 ? "ring-ink" : "ring-transparent hover:ring-ink-3", n === 0 && "ml-2")}>
               <img src={thumb(slug, row.src, f + n, 160)} alt={`frame ${f + n}`} className="h-[150px] w-[84px] bg-black object-cover" loading="lazy" />
               <span className="num absolute right-0 bottom-0 bg-black/65 px-1 text-[10px] leading-[14px] text-white">{f + n}</span>
             </button>
@@ -191,7 +189,7 @@ export function SegEditor({ slug, ad, labels, onClose, onSaved }: { slug: string
         if (k === "a0" || k === "a1") v != null && !Number.isNaN(v) && setEdge(i, k, v);
         else patch(i, { [k]: v != null && Number.isNaN(v) ? null : v } as Partial<Row>);
       }}
-      className={cx("num h-7 w-[84px] rounded-[5px] border bg-well px-1.5 text-[12.5px]", sel.i === i && sel.edge === k ? "border-sel" : "border-line")}
+      className={cx("field num min-h-[32px] w-[90px] text-[12.5px]", sel.i === i && sel.edge === k && "border-sel")}
       aria-label={`${k} of segment ${i + 1}`}
     />
   );
@@ -206,11 +204,11 @@ export function SegEditor({ slug, ad, labels, onClose, onSaved }: { slug: string
           </div>
           <div className="space-y-2">
             {rows.map((r, i) => (
-              <div key={i} className={cx("rounded-[6px] border-l-[3px] bg-surface-2 p-2 ring-2", r.role === "hook" ? "border-hook" : r.role === "cta" ? "border-cta" : "border-body", sel.i === i ? "ring-sel" : "ring-transparent")} onClick={() => sel.i !== i && setSel({ i, edge: sel.edge })}>
-                <div className="flex items-center gap-1.5">
+              <div key={i} className={cx("rounded-[14px] border-l-[3px] bg-well p-3 ring-2", r.role === "hook" ? "border-hook" : r.role === "cta" ? "border-cta" : "border-body", sel.i === i ? "ring-sel" : "ring-transparent")} onClick={() => sel.i !== i && setSel({ i, edge: sel.edge })}>
+                <div className="flex items-center gap-2">
                   <span className="num w-4 text-[12px] text-ink-3">{i + 1}</span>
                   <select value={r.role} onChange={(e) => patch(i, { role: e.target.value as Role, gfx: e.target.value === "body" })}
-                    className="h-[24px] rounded-[5px] border border-line bg-well px-1 text-[12.5px]" aria-label={`Role of segment ${i + 1}`}>
+                    className="field min-h-[32px] text-[12.5px]" aria-label={`Role of segment ${i + 1}`}>
                     <option value="hook">Hook</option>
                     <option value="body">Body</option>
                     <option value="cta">CTA</option>
@@ -305,17 +303,17 @@ export function Preview({ slug, ad, labels, onClose }: { slug: string; ad: Propo
   return (
     <Modal title={`Rough preview of ${ad.name}`} onClose={onClose}>
       <div className="p-4">
-        <div className="viewer relative mx-auto aspect-[9/16] w-[270px] overflow-hidden rounded-[6px]">
+        <div className="viewer relative mx-auto aspect-[9/16] w-[270px] overflow-hidden rounded-[18px]">
           {srcs.map((k) => (
             <video key={k} ref={(el) => { vids.current[k] = el; }} src={`/media/${slug}/src/${k}`} preload="auto" playsInline
               className={cx("absolute inset-0 h-full w-full", seg?.src === k ? "opacity-100" : "opacity-0")} />
           ))}
         </div>
         <div dir="auto" className="font-caption mx-auto mt-3 min-h-[52px] max-w-[440px] text-center text-[17px] leading-snug font-black">{seg?.said || seg?.text}</div>
-        <div className="mt-2 flex h-[22px] gap-[2px] rounded-[6px] bg-well p-[3px]">
+        <div className="mt-3 flex h-[24px] gap-[3px] rounded-[10px] bg-well p-[3px]">
           {ad.segs.map((s, i) => (
-            <button key={i} onClick={() => start(i)} title={`${roleOf(ad, i)} · ${labels[s.src] ?? s.src} ${fmt(s.a0)}–${fmt(s.a1)} s`}
-              className={cx("clip h-full rounded-[3px]", roleOf(ad, i) === "hook" ? "bg-hook" : roleOf(ad, i) === "cta" ? "bg-cta" : "bg-body", i !== idx && "opacity-45", i === idx && "ring-2 ring-sel")}
+            <button key={i} type="button" onClick={() => start(i)} title={`${roleOf(ad, i)} · ${labels[s.src] ?? s.src} ${fmt(s.a0)}–${fmt(s.a1)} s`}
+              className={cx("clip h-full", roleOf(ad, i) === "hook" ? "bg-hook" : roleOf(ad, i) === "cta" ? "bg-cta" : "bg-body", i !== idx && "opacity-45", i === idx && "ring-2 ring-ink")}
               style={{ width: `${((s.a1 - s.a0) / total) * 100}%` }} />
           ))}
         </div>

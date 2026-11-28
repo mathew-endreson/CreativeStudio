@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, basename, clock, errText, thumbUrl, type Folder, type FolderEntry, type NewSource } from "./api";
 import { pickFolder } from "./tauri";
-import { Button, Card, Chip, ErrorNote, Label, PageHeader } from "./ui";
+import { Button, Card, cx, ErrorNote, field, Label, Status, Toolbar } from "./ui";
 
 type Tag = NewSource["tag"];
 const TAGS: { id: Tag; label: string }[] = [
@@ -12,7 +12,7 @@ const TAGS: { id: Tag; label: string }[] = [
   { id: "illustration", label: "picture (herb, organ…)" },
   { id: "ignore", label: "ignore" },
 ];
-const input = "h-[28px] w-full rounded-[5px] border border-line bg-well shadow-[inset_0_1px_2px_rgb(0_0_0/0.25)] focus:border-accent focus:outline-none px-2 text-[13px]";
+const input = cx(field, "w-full");
 
 /** A product from a folder: its finished ads (or raw footage), its pictures, the words Whisper should know. */
 export default function NewProduct({ openJob }: { openJob: (id: number) => void }) {
@@ -93,9 +93,9 @@ export default function NewProduct({ openJob }: { openJob: (id: number) => void 
 
   const FileRow = ({ e }: { e: FolderEntry }) => (
     <div className="flex items-center gap-3 border-b border-line px-3 py-2 last:border-b-0">
-      <img src={thumbUrl(e.path, 96)} alt="" className={e.kind === "video" ? "h-[64px] w-[36px] rounded bg-black object-cover" : "h-[64px] w-[64px] rounded bg-surface-2 object-contain"} loading="lazy" />
+      <img src={thumbUrl(e.path, 96)} alt="" className={e.kind === "video" ? "h-[64px] w-[36px] rounded-[6px] bg-black object-cover" : "h-[64px] w-[64px] rounded-[6px] bg-well object-contain"} loading="lazy" />
       <div className="min-w-0 flex-1">
-        <div dir="auto" className="truncate font-medium">
+        <div dir="auto" className="truncate text-[13px] font-medium">
           {e.name}
         </div>
         <div className="num truncate text-[12px] text-ink-3">
@@ -103,9 +103,9 @@ export default function NewProduct({ openJob }: { openJob: (id: number) => void 
         </div>
       </div>
       {(tags[e.path] === "finished_ad" || tags[e.path] === "source") && (
-        <input className={`${input} w-[70px]`} value={labels[e.path] ?? ""} onChange={(x) => setLabels({ ...labels, [e.path]: x.target.value })} title="short label used in ad names" />
+        <input className={cx(field, "w-[76px]")} value={labels[e.path] ?? ""} onChange={(x) => setLabels({ ...labels, [e.path]: x.target.value })} title="short label used in ad names" aria-label="Short label" />
       )}
-      <select className="h-[28px] rounded-[5px] border border-line bg-well shadow-[inset_0_1px_2px_rgb(0_0_0/0.25)] focus:border-accent focus:outline-none px-2 text-[13px]" value={tags[e.path] ?? "ignore"} onChange={(x) => setTags({ ...tags, [e.path]: x.target.value as Tag })}>
+      <select className={field} value={tags[e.path] ?? "ignore"} onChange={(x) => setTags({ ...tags, [e.path]: x.target.value as Tag })} aria-label="What this file is">
         {TAGS.filter((t) => (e.kind === "video" ? ["finished_ad", "source", "ignore"] : ["packshot", "offer", "illustration", "ignore"]).includes(t.id)).map((t) => (
           <option key={t.id} value={t.id}>
             {t.label}
@@ -117,12 +117,12 @@ export default function NewProduct({ openJob }: { openJob: (id: number) => void 
 
   return (
     <div className="mx-auto max-w-[1100px]">
-      <PageHeader icon="plus" title="New project" sub="A product is a folder of finished ads (or raw footage) and its pictures. The app analyses the ads, proposes new ones, and renders the ones you tick into the Ads folder." />
+      <Toolbar back="#/" title="New project" sub="A product is a folder of finished ads (or raw footage) and its pictures. The app analyses the ads, proposes new ones, and renders the ones you pick into the Ads folder." />
       {err && <ErrorNote>{err}</ErrorNote>}
-      <Card className="p-4">
+      <Card className="p-5">
         <Label>Product folder</Label>
-        <div className="mt-1 flex gap-2">
-          <input className={input} placeholder="C:\…\Product" value={path} onChange={(e) => setPath(e.target.value)} onKeyDown={(e) => e.key === "Enter" && list(path)} />
+        <div className="mt-1.5 flex gap-2">
+          <input className={input} placeholder="C:\…\Product" value={path} onChange={(e) => setPath(e.target.value)} onKeyDown={(e) => e.key === "Enter" && list(path)} aria-label="Product folder" />
           <Button onClick={() => list(path)} disabled={!path.trim()}>
             List
           </Button>
@@ -140,20 +140,30 @@ export default function NewProduct({ openJob }: { openJob: (id: number) => void 
           </Button>
         </div>
         {folder && (
-          <div className="mt-3 grid gap-3 xl:grid-cols-2">
+          <div className="mt-4 grid gap-4 xl:grid-cols-2">
             <div>
               <Label>Videos ({videos.length})</Label>
-              <div className="mt-1 rounded-[6px] border border-line">{videos.map((e) => <FileRow key={e.path} e={e} />)}{videos.length === 0 && <div className="p-3 text-ink-3">No video in this folder.</div>}</div>
+              <div className="mt-1.5 overflow-hidden rounded-[14px] border border-line">
+                {videos.map((e) => (
+                  <FileRow key={e.path} e={e} />
+                ))}
+                {videos.length === 0 && <div className="p-3 text-ink-3">No video in this folder.</div>}
+              </div>
             </div>
             <div>
               <Label>Pictures ({images.length})</Label>
-              <div className="mt-1 rounded-[6px] border border-line">{images.map((e) => <FileRow key={e.path} e={e} />)}{images.length === 0 && <div className="p-3 text-ink-3">No picture here: add the product's pictures later, in its Pictures tab.</div>}</div>
+              <div className="mt-1.5 overflow-hidden rounded-[14px] border border-line">
+                {images.map((e) => (
+                  <FileRow key={e.path} e={e} />
+                ))}
+                {images.length === 0 && <div className="p-3 text-ink-3">No picture here: add the product's pictures later, in its Pictures tab.</div>}
+              </div>
               {folder.entries.some((e) => e.kind === "folder") && (
-                <div className="mt-2 flex flex-wrap gap-1">
+                <div className="mt-2 flex flex-wrap gap-1.5">
                   {folder.entries
                     .filter((e) => e.kind === "folder")
                     .map((e) => (
-                      <button key={e.path} className="rounded-full border border-line px-2 py-px text-[12px] hover:border-accent" onClick={() => (setPath(e.path), list(e.path))}>
+                      <button key={e.path} type="button" className="press glass-pill h-[30px] px-3 text-[12px] hover:bg-white/[0.1]" onClick={() => (setPath(e.path), list(e.path))}>
                         {e.name}/
                       </button>
                     ))}
@@ -164,41 +174,43 @@ export default function NewProduct({ openJob }: { openJob: (id: number) => void 
         )}
       </Card>
       {folder && (
-        <Card className="mt-3 grid gap-3 p-4 md:grid-cols-2">
-          <div>
+        <Card className="mt-[10px] grid gap-4 p-5 md:grid-cols-2">
+          <label className="block">
             <Label>Name (Latin, for file names)</Label>
-            <input className={`${input} mt-1`} value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div>
+            <input className={cx(input, "mt-1.5")} value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
+          <label className="block">
             <Label>Arabic name</Label>
-            <input dir="auto" className={`${input} mt-1 font-caption text-[15px]`} value={nameAr} onChange={(e) => setNameAr(e.target.value)} />
-          </div>
-          <div className="md:col-span-2">
+            <input dir="auto" className={cx(input, "font-caption mt-1.5 text-[15px]")} value={nameAr} onChange={(e) => setNameAr(e.target.value)} />
+          </label>
+          <label className="block md:col-span-2">
             <Label>Key words for Whisper (Darija, Arabic, French; the product, the organ, the symptoms, the brand)</Label>
-            <textarea dir="auto" className="mt-1 h-16 w-full rounded-[5px] border border-line bg-well shadow-[inset_0_1px_2px_rgb(0_0_0/0.25)] focus:border-accent focus:outline-none p-2 text-[14px]" value={prompt} onChange={(e) => setPrompt(e.target.value)} />
-          </div>
-          <div>
+            <textarea dir="auto" className={cx(input, "mt-1.5 h-20 text-[14px]")} value={prompt} onChange={(e) => setPrompt(e.target.value)} />
+          </label>
+          <label className="block">
             <Label>Ads folder (output)</Label>
-            <input className={`${input} mt-1`} value={adsDir} onChange={(e) => setAdsDir(e.target.value)} />
-          </div>
-          <div>
-            <Label>GPT drawings per run (only when you ask)</Label>
-            <input type="number" min={0} max={10} className={`${input} mt-1 w-[90px]`} value={gpt} onChange={(e) => setGpt(Number(e.target.value))} />
-          </div>
-          <div>
+            <input className={cx(input, "mt-1.5")} value={adsDir} onChange={(e) => setAdsDir(e.target.value)} />
+          </label>
+          <label className="block">
+            <Label>Drawings per run (only when you ask)</Label>
+            <input type="number" min={0} max={10} className={cx(field, "num mt-1.5 w-[100px]")} value={gpt} onChange={(e) => setGpt(Number(e.target.value))} />
+          </label>
+          <label className="block">
             <Label>Offers (one per line, as he says them)</Label>
-            <textarea dir="auto" className="mt-1 h-16 w-full rounded-[5px] border border-line bg-well shadow-[inset_0_1px_2px_rgb(0_0_0/0.25)] focus:border-accent focus:outline-none p-2 text-[13px]" value={offers} onChange={(e) => setOffers(e.target.value)} placeholder={"1 kg + 100 g seeds\n3 kg"} />
-          </div>
-          <div>
+            <textarea dir="auto" className={cx(input, "mt-1.5 h-20")} value={offers} onChange={(e) => setOffers(e.target.value)} placeholder={"1 kg + 100 g seeds\n3 kg"} />
+          </label>
+          <label className="block">
             <Label>Known duplicates (one per line)</Label>
-            <textarea className="mt-1 h-16 w-full rounded-[5px] border border-line bg-well shadow-[inset_0_1px_2px_rgb(0_0_0/0.25)] focus:border-accent focus:outline-none p-2 text-[13px]" value={dups} onChange={(e) => setDups(e.target.value)} placeholder="V7 = V5 hook + V6 body" />
-          </div>
-          <div className="flex items-center gap-3 md:col-span-2">
+            <textarea className={cx(input, "mt-1.5 h-20")} value={dups} onChange={(e) => setDups(e.target.value)} placeholder="V7 = V5 hook + V6 body" />
+          </label>
+          <div className="flex flex-wrap items-center gap-4 md:col-span-2">
             <Button variant="primary" onClick={create} disabled={busy || !name.trim() || nAds === 0}>
               {busy ? "Creating…" : "Create the project"}
             </Button>
-            <Chip>{nAds} video{nAds === 1 ? "" : "s"} to analyse</Chip>
-            {images.some((e) => tags[e.path] && tags[e.path] !== "ignore") && <Chip tone="accent">pictures are cut out and indexed after creation (a job)</Chip>}
+            <Status tone={nAds ? "ok" : "warn"}>
+              {nAds} video{nAds === 1 ? "" : "s"} to analyse
+            </Status>
+            {images.some((e) => tags[e.path] && tags[e.path] !== "ignore") && <Status tone="info">pictures are cut out and indexed after creation</Status>}
           </div>
         </Card>
       )}

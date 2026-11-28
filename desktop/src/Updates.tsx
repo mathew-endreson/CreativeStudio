@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, type Settings as SettingsT } from "./api";
+import { PRODUCT_NAME } from "./brand";
 import { isActive } from "./Jobs";
 import { inTauri } from "./tauri";
 import { Button, Chip, cx, Dot } from "./ui";
@@ -103,7 +104,7 @@ export default function Updates({ version, settings, save, initial }: { version:
 
   const askInstall = async () => {
     if (!check?.version) return;
-    const ok = confirm(`Download BluxTech Studio ${check.version} and install it?\n\nThe app closes, installs the update and opens again. Your projects, pictures, settings and license stay as they are.`);
+    const ok = confirm(`Download ${PRODUCT_NAME} ${check.version} and install it?\n\nThe app closes, installs the update and opens again. Your projects, pictures, settings and license stay as they are.`);
     if (!ok) return;
     let n = 0;
     try {
@@ -144,7 +145,9 @@ export default function Updates({ version, settings, save, initial }: { version:
   if (!inTauri()) {
     return (
       <Row label="Current version">
-        <span className="num">BluxTech Studio v{version}</span>
+        <span className="num">
+          {PRODUCT_NAME} v{version}
+        </span>
         <span className="ml-2 text-[12px] text-ink-3">Updates come with the installed app; this is the browser view.</span>
       </Row>
     );
@@ -154,7 +157,9 @@ export default function Updates({ version, settings, save, initial }: { version:
     <>
       <Row label="Current version">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="num">BluxTech Studio v{version}</span>
+          <span className="num">
+            {PRODUCT_NAME} v{version}
+          </span>
           {status && !status.enabled && <Chip title={status.reason}>updates off</Chip>}
           {status?.channel === "override" && <Chip tone="warn">rehearsal channel</Chip>}
           {phase === "uptodate" && <Chip tone="ok">up to date</Chip>}
@@ -207,7 +212,7 @@ export default function Updates({ version, settings, save, initial }: { version:
                     </span>
                   )}
                 </div>
-                <div className="glass-well mt-1 h-2 overflow-hidden rounded-full">
+                <div className="mt-1 h-[6px] overflow-hidden rounded-full bg-white/[0.08]">
                   <div className={cx("h-full rounded-full bg-accent transition-[width] duration-300", pct == null && "animate-pulse")} style={{ width: `${pct ?? (phase === "downloading" ? 15 : 100)}%` }} />
                 </div>
               </div>

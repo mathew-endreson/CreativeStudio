@@ -24,7 +24,7 @@ export function TranscriptStatus({ info, running, onRedo }: { info?: TranscriptI
   const arrow = <Icon name="chevronRight" size={11} className="shrink-0 text-ink-3" />;
   const corrected = st === "corrected";
   return (
-    <div className="border-b border-line bg-surface-2/40 px-3 py-2 text-[11.5px]">
+    <div className="text-[11.5px]">
       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
         {step("ffmpeg + Whisper", st !== "none", false, "Whisper large-v3-turbo listens on this PC")}
         {arrow}
@@ -35,7 +35,7 @@ export function TranscriptStatus({ info, running, onRedo }: { info?: TranscriptI
         <span className="flex items-center gap-1">
           {(["txt", "srt", "doc"] as const).map((k) =>
             info?.files[k] ? (
-              <button key={k} onClick={() => api.reveal(info.files[k]!)} title={`Show ${info.files[k]} in Explorer`} className="rounded-[4px] bg-surface-3 px-1.5 py-px font-mono text-[10.5px] text-ink-2 hover:text-ink">
+              <button key={k} type="button" onClick={() => api.reveal(info.files[k]!)} title={`Show ${info.files[k]} in Explorer`} className="rounded-[6px] bg-white/[0.1] px-1.5 py-px font-mono text-[10.5px] text-ink-2 hover:text-ink">
                 .{k === "doc" ? "json" : k}
               </button>
             ) : (
@@ -52,7 +52,7 @@ export function TranscriptStatus({ info, running, onRedo }: { info?: TranscriptI
           <Chip tone="warn" title="Whisper's raw text: not corrected yet">Whisper draft</Chip>
         ) : null}
         {onRedo && st !== "none" && (
-          <Button small variant="ghost" icon="sparkles" disabled={running} onClick={onRedo}>
+          <Button small variant="ghost" icon="refresh" disabled={running} onClick={onRedo}>
             {corrected ? "Correct again" : "Correct the Darija"}
           </Button>
         )}
@@ -88,10 +88,10 @@ export function Transcript({ segments, t, a, onSeek }: { segments: Segment[]; t:
             onClick={() => onSeek(w.s)}
             title={`${fmt(w.s)}–${fmt(w.e)} s${w.p < 0.5 ? " · unsure: check it by ear" : ""}`}
             className={cx(
-              "mx-[1px] rounded-[4px] px-1 underline decoration-2 underline-offset-[7px] hover:bg-surface-3",
+              "mx-[1px] rounded-[4px] px-1 underline decoration-2 underline-offset-[7px] hover:bg-hover",
               underline[sectionOf(w.s, a)],
               w.p < 0.5 && "decoration-dotted",
-              on && "bg-accent text-on-accent hover:bg-accent",
+              on && "bg-white/[0.16] text-ink",
             )}
           >
             {w.w}
@@ -121,7 +121,8 @@ export function SheetStrip({ slug, scan, t, onSeek }: { slug: string; scan: Scan
           key={i}
           onClick={() => onSeek(i)}
           title={`${i} s`}
-          className={cx("relative shrink-0 overflow-hidden rounded-[3px] ring-2", i === cur ? "ring-sel" : "ring-transparent hover:ring-ink-3")}
+          type="button"
+          className={cx("relative shrink-0 overflow-hidden rounded-[6px] ring-2", i === cur ? "ring-ink" : "ring-transparent hover:ring-ink-3")}
           style={{
             width: W,
             height: H,

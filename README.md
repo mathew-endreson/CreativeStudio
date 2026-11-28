@@ -1,6 +1,8 @@
-# BluxTech Studio
+# CreativeStudio
 
-A Windows desktop application around the `/bluxstudio-skill` ad pipeline: talking-head footage in, finished Algerian-Darija
+Formerly BluxTech Studio: the product was renamed on 2026-11-28. The bundle identifier (`com.bluxtech.studio`), the
+data folders and the engine's module names keep the old name on purpose, so installed copies, projects and
+settings stay where they are. A Windows desktop application around the `/bluxstudio-skill` ad pipeline: talking-head footage in, finished Algerian-Darija
 video ads out (captions, hook / body / CTA transitions, the product's own pictures animated in front of the speaker, −15 LUFS renders), with accounts
 and licensing in the cloud and every render on the user's own PC.
 

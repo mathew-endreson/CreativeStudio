@@ -11,6 +11,8 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    // the Rust build writes under src-tauri/target; watching it crashes the dev server (EBUSY on a running exe)
+    watch: { ignored: ["**/src-tauri/**"] },
     proxy: {
       "/api": { target: "http://127.0.0.1:8766", changeOrigin: false },
       "/media": { target: "http://127.0.0.1:8766", changeOrigin: false },

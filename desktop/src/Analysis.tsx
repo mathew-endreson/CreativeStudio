@@ -6,7 +6,7 @@ import { thumb } from "./SegEditor";
 import Timeline, { type Field } from "./Timeline";
 import { SheetStrip, Transcript, TranscriptStatus } from "./Transcript";
 import { useVideo, Viewer } from "./Viewer";
-import { Button, Chip, cx, dirOf, Dot, Empty, ErrorNote, field, Label, Loading, Panel, Prop, Segmented, tc } from "./ui";
+import { Button, Chip, cx, dirOf, Dot, Empty, ErrorNote, field, Glass, Label, Loading, Panel, Prop, Segmented, tc } from "./ui";
 
 const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x));
 const F = 1 / 30;
@@ -50,7 +50,7 @@ function TimeField({
             onCommit();
           }}
           onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-          className={cx(field, "num h-[24px] w-[96px]")}
+          className={cx(field, "num min-h-[32px] w-[100px]")}
           aria-label={`${label} in seconds`}
         />
         <span className="num w-11 text-[11px] text-ink-3">{value == null ? "" : `f${frameOf(value)}`}</span>
@@ -64,8 +64,8 @@ function TimeField({
 
 function Section({ title, children, right }: { title: string; children: React.ReactNode; right?: React.ReactNode }) {
   return (
-    <div className="border-b border-line px-3 py-2.5 last:border-b-0">
-      <div className="mb-1 flex items-center justify-between gap-2">
+    <div className="border-b border-line px-4 py-3 last:border-b-0">
+      <div className="mb-1.5 flex items-center justify-between gap-2">
         <Label>{title}</Label>
         {right}
       </div>
@@ -98,19 +98,19 @@ function SourceView({
     setField(f, v);
     seek(v);
   };
-  const tabs: { id: LeftTab; label: string; icon: "list" | "text" | "sparkles" }[] = [
-    { id: "lines", label: `Lines${a?.lines ? ` ${a.lines.length}` : ""}`, icon: "list" },
-    { id: "transcript", label: "Transcript", icon: "text" },
-    ...(lift.length ? [{ id: "lift" as const, label: `Liftable ${lift.length}`, icon: "sparkles" as const }] : []),
+  const tabs: { id: LeftTab; label: string }[] = [
+    { id: "lines", label: `Lines${a?.lines ? ` ${a.lines.length}` : ""}` },
+    { id: "transcript", label: "Transcript" },
+    ...(lift.length ? [{ id: "lift" as const, label: `Liftable ${lift.length}` }] : []),
   ];
 
   return (
-    <div className="space-y-[3px]">
-      <div className="grid gap-[3px] xl:h-[clamp(470px,64vh,720px)] xl:grid-cols-[minmax(0,1fr)_minmax(270px,330px)_minmax(300px,360px)] grid-cols-[minmax(260px,330px)_minmax(0,1fr)]">
-        {/* the browser side: lines, transcript, liftable hooks */}
+    <div className="space-y-[10px]">
+      <div className="grid gap-[10px] xl:h-[clamp(470px,64vh,720px)] xl:grid-cols-[minmax(0,1fr)_minmax(270px,330px)_minmax(300px,360px)] grid-cols-[minmax(260px,330px)_minmax(0,1fr)]">
+        {/* the notes side: lines, transcript, liftable hooks */}
         <Panel
           className="order-3 col-span-2 h-[380px] xl:order-none xl:col-span-1 xl:h-auto"
-          title={<Segmented value={tab} onChange={setTab} options={tabs} />}
+          title={<Segmented small value={tab} onChange={setTab} options={tabs} />}
           bodyClass="overflow-auto"
         >
           {tab === "lines" &&
@@ -120,8 +120,8 @@ function SourceView({
               (a.lines ?? []).map((l, i) => {
                 const on = t >= l.a0 && t < l.a1;
                 return (
-                  <div key={i} className={cx("flex items-start gap-2 border-b border-line px-2.5 py-1.5 last:border-b-0", on && "bg-sel/10 shadow-[inset_2px_0_0_var(--sel)]")}>
-                    <button className="tc flex w-[92px] shrink-0 items-center gap-1 pt-0.5 text-left text-[11px] text-ink-2 hover:text-accent" onClick={() => playRange(l.a0, l.a1)} title="Play this line">
+                  <div key={i} className={cx("flex items-start gap-2 border-b border-line px-4 py-2 last:border-b-0", on && "bg-white/[0.05] shadow-[inset_2px_0_0_var(--sel)]")}>
+                    <button type="button" className="tc flex w-[92px] shrink-0 items-center gap-1 pt-0.5 text-left text-[11px] text-ink-2 hover:text-ink" onClick={() => playRange(l.a0, l.a1)} title="Play this line">
                       <Icon name="play" size={10} />
                       {fmt(l.a0)}–{fmt(l.a1)}
                     </button>
@@ -149,8 +149,10 @@ function SourceView({
             ))}
           {tab === "transcript" && (
             <>
-              <TranscriptStatus info={data.transcript} running={fixing} onRedo={onFix} />
-              <div className="px-3 py-2">
+              <div className="border-b border-line px-4 py-2">
+                <TranscriptStatus info={data.transcript} running={fixing} onRedo={onFix} />
+              </div>
+              <div className="px-4 py-3">
                 <Transcript segments={data.words} t={t} a={a} onSeek={seek} />
               </div>
             </>
@@ -164,7 +166,8 @@ function SourceView({
                     setOpenLift(openLift === l.id ? null : l.id);
                     playRange(l.a0, l.a1);
                   }}
-                  className={cx("block w-full rounded-[6px] border p-2 text-left", openLift === l.id ? "border-sel bg-sel/10" : "border-line bg-surface-2 hover:border-ink-3")}
+                  type="button"
+                  className={cx("press block w-full rounded-[14px] border p-3 text-left", openLift === l.id ? "border-sel bg-white/[0.06]" : "border-line bg-well hover:border-line-strong")}
                   title="Play this line"
                 >
                   <div className="flex items-center gap-2 text-[12px]">
@@ -189,10 +192,10 @@ function SourceView({
           )}
         </Panel>
 
-        <Viewer video={video} src={`/media/${slug}/src/${data.key}`} dur={dur} title={<>Viewer · <span className="font-mono">{data.key}</span>{a?.label ? ` · ${a.label}` : ""}</>} className="h-[560px] xl:h-auto" />
+        <Viewer video={video} src={`/media/${slug}/src/${data.key}`} dur={dur} title={<><span className="font-mono">{data.key}</span>{a?.label ? ` · ${a.label}` : ""}</>} className="h-[560px] xl:h-auto" />
 
         {/* the inspector */}
-        <Panel title="Inspector" icon="inspector" className="h-[560px] xl:h-auto" bodyClass="overflow-auto"
+        <Panel glass title="Inspector" className="h-[560px] xl:h-auto" bodyClass="overflow-auto"
           actions={
             <span className={cx("text-[11px]", saving.startsWith("error") ? "text-bad" : "text-ink-3")}>
               {saving === "saving" ? "saving…" : saving === "saved" ? "saved" : saving.startsWith("error") ? saving : ""}
@@ -201,9 +204,9 @@ function SourceView({
         >
           {a ? (
             <>
-              <div className="border-b border-line px-3 py-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="clip grid h-8 w-8 shrink-0 place-items-center rounded-[6px] bg-body text-[12px] font-bold text-white">{data.key}</span>
+              <div className="border-b border-line px-4 py-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] bg-body text-[12px] font-bold text-black/80">{data.key}</span>
                   <div className="min-w-0 flex-1 truncate text-[14px] font-semibold">{a.label}</div>
                 </div>
                 <div dir={dirOf(a.summary)} className="mt-1.5 text-[12.5px] leading-snug text-ink-2">
@@ -258,7 +261,7 @@ function SourceView({
             </>
           ) : (
             <>
-              <div className="px-3 py-3 text-[12.5px] text-ink-3">Not analysed yet: run the analysis to get hook, body and CTA, the lines and the liftable hooks.</div>
+              <div className="px-4 py-3 text-[12.5px] text-ink-3">Not analysed yet: run the analysis to get hook, body and CTA, the lines and the liftable hooks.</div>
               <Section title="Flagged">
                 <Flagged issues={issues} />
               </Section>
@@ -267,11 +270,11 @@ function SourceView({
         </Panel>
       </div>
 
-      <Panel title={<span className="flex items-center gap-2">Timeline <span className="tc font-normal text-ink-3">{tc(t)} / {tc(dur)}</span></span>} icon="film" bodyClass="px-2 pt-2 pb-2.5">
+      <Panel title={<span className="flex items-center gap-2">Timeline <span className="tc font-normal text-ink-3">{tc(t)} / {tc(dur)}</span></span>} bodyClass="px-3 pb-3">
         <Timeline dur={dur} t={t} scan={scan} curves={data.curves} a={a} lift={lift} onSeek={seek} onDrag={drag} onDrop={save} onPlayRange={playRange} />
       </Panel>
 
-      <Panel title="Filmstrip · one frame a second" icon="grid" bodyClass="px-2 pt-2">
+      <Panel title="Filmstrip · one frame a second" bodyClass="px-3 pb-1">
         <SheetStrip slug={slug} scan={scan} t={t} onSeek={seek} />
       </Panel>
     </div>
@@ -288,7 +291,7 @@ function Flagged({ issues }: { issues: { tone: "warn" | "bad"; text: string }[] 
   return (
     <div className="space-y-1">
       {issues.map((x, i) => (
-        <div key={i} className={cx("flex gap-1.5 rounded-[5px] px-2 py-1 text-[12px]", x.tone === "bad" ? "bg-bad-soft text-bad" : "bg-warn/10 text-ink")}>
+        <div key={i} className={cx("flex gap-1.5 rounded-[10px] px-2.5 py-1.5 text-[12px]", x.tone === "bad" ? "bg-bad-soft text-bad" : "bg-well text-ink-2")}>
           <Icon name="alert" size={12} className={cx("mt-0.5 shrink-0", x.tone === "bad" ? "text-bad" : "text-warn")} />
           <span dir={dirOf(x.text)} className="min-w-0 flex-1">
             {x.text}
@@ -303,8 +306,8 @@ function Flagged({ issues }: { issues: { tone: "warn" | "bad"; text: string }[] 
 function ClipTile({ slug, k, label, name, dur, on, analysed, onClick }: { slug: string; k: string; label: string; name: string; dur?: number | null; on: boolean; analysed: boolean; onClick: () => void }) {
   const [broken, setBroken] = useState(false);
   return (
-    <button onClick={onClick} className="group w-[104px] shrink-0 text-left" title={name}>
-      <div className={cx("relative h-[150px] overflow-hidden rounded-[5px] bg-black ring-2 ring-offset-0", on ? "ring-sel" : "ring-transparent group-hover:ring-ink-3")}>
+    <button type="button" onClick={onClick} className="press group w-[104px] shrink-0 text-left" title={name}>
+      <div className={cx("relative h-[150px] overflow-hidden rounded-[10px] bg-black ring-2 ring-offset-0", on ? "ring-ink" : "ring-transparent group-hover:ring-ink-3")}>
         {!broken ? (
           <img src={thumb(slug, k, 45, 160)} alt="" loading="lazy" onError={() => setBroken(true)} className="h-full w-full object-cover" />
         ) : (
@@ -433,9 +436,9 @@ export default function Analysis({ p, reload, openJob }: { p: ProductDetail; rel
   );
 
   return (
-    <div className="space-y-[3px]">
+    <div className="space-y-[10px]">
       {/* the analysis toolbar */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 glass rounded-[12px] px-3 py-2">
+      <Glass className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
         {stat("copies", count("copy"))}
         {stat("transcripts", count("words"))}
         {stat("Darija ✓", p.sources.filter((s) => s.darija === "corrected").length)}
@@ -446,31 +449,43 @@ export default function Analysis({ p, reload, openJob }: { p: ProductDetail; rel
         </span>
         <div className="flex-1" />
         <details className="relative">
-          <summary className="flex h-[28px] cursor-pointer list-none items-center gap-1 rounded-[6px] px-2.5 text-[12.5px] text-ink-2 hover:bg-surface-3 hover:text-ink">
+          <summary className="press glass-pill flex h-[36px] cursor-pointer list-none items-center gap-1.5 px-4 text-[13px] font-medium text-ink hover:bg-white/[0.1]">
             <Icon name="refresh" size={13} /> Redo a step <Icon name="chevronDown" size={12} />
           </summary>
-          <div className="absolute right-0 z-20 mt-1 w-56 glass rounded-[12px] p-1">
-            <button className="block w-full rounded-[5px] px-2 py-1.5 text-left hover:bg-accent hover:text-on-accent" onClick={() => run("prepare", true)}>Check the copies again</button>
-            <button className="block w-full rounded-[5px] px-2 py-1.5 text-left hover:bg-accent hover:text-on-accent" onClick={() => run("transcribe", true)}>Transcribe again (then correct)</button>
-            <button className="block w-full rounded-[5px] px-2 py-1.5 text-left hover:bg-accent hover:text-on-accent" onClick={() => run("darija", true)}>Correct the Darija again</button>
-            <button className="block w-full rounded-[5px] px-2 py-1.5 text-left hover:bg-accent hover:text-on-accent" onClick={() => run("scan", true)}>Scan again</button>
+          <div className="glass absolute right-0 z-20 mt-2 w-60 rounded-[18px] p-1.5">
+            <button type="button" className="block w-full rounded-[12px] px-3 py-2 text-left text-[13px] hover:bg-hover" onClick={() => run("prepare", true)}>
+              Check the copies again
+            </button>
+            <button type="button" className="block w-full rounded-[12px] px-3 py-2 text-left text-[13px] hover:bg-hover" onClick={() => run("transcribe", true)}>
+              Transcribe again (then correct)
+            </button>
+            <button type="button" className="block w-full rounded-[12px] px-3 py-2 text-left text-[13px] hover:bg-hover" onClick={() => run("darija", true)}>
+              Correct the Darija again
+            </button>
+            <button type="button" className="block w-full rounded-[12px] px-3 py-2 text-left text-[13px] hover:bg-hover" onClick={() => run("scan", true)}>
+              Scan again
+            </button>
           </div>
         </details>
+        {analysis && (
+          <Button onClick={() => (location.hash = `#/p/${slug}/possible`)} title="Ideas for new ads, made from this analysis">
+            More ideas
+          </Button>
+        )}
         <Button
           variant="primary"
-          icon="sparkles"
           disabled={analyzing}
           onClick={() => {
-            if (!analysis || window.confirm("Analyze again? Claude rewrites analysis.json. The times you set by hand are kept.")) void run("analyze");
+            if (!analysis || window.confirm("Analyze again? The analysis is rewritten. The times you set by hand are kept.")) void run("analyze");
           }}
         >
-          {analyzing ? "Analyzing…" : analysis ? "Analyze again with Claude" : "Analyze with Claude"}
+          {analyzing ? "Analyzing…" : analysis ? "Analyze again" : "Analyze"}
         </Button>
-      </div>
+      </Glass>
 
       {analysis && (
         <form
-          className="flex items-center gap-2 glass rounded-[10px] px-2 py-1.5"
+          className="glass flex items-center gap-2 rounded-full py-1.5 pr-1.5 pl-4"
           onSubmit={async (e) => {
             e.preventDefault();
             if (!ask.trim()) return;
@@ -484,11 +499,18 @@ export default function Analysis({ p, reload, openJob }: { p: ProductDetail; rel
             }
           }}
         >
-          <Icon name="sparkles" size={14} className="ml-1 shrink-0 text-ink-3" />
-          <input value={ask} onChange={(e) => setAsk(e.target.value)} dir="auto" aria-label="A change to the analysis"
-            placeholder="Something wrong in the analysis? Say it here: “the CTA of V6 starts on the cut at 31.27”, “L6 is not a hook”"
-            className={cx(field, "h-[28px] min-w-0 flex-1")} />
-          <Button type="submit" disabled={!ask.trim() || active.some((j) => j.kind === "amend")}>Ask Claude to change it</Button>
+          <Icon name="edit" size={14} className="shrink-0 text-ink-3" />
+          <input
+            value={ask}
+            onChange={(e) => setAsk(e.target.value)}
+            dir="auto"
+            aria-label="A change to the analysis notes"
+            placeholder="Something wrong in the notes? Say it: “the CTA of V6 starts on the cut at 31.27”, “L6 is not a hook”"
+            className="min-w-0 flex-1 bg-transparent text-[13px] text-ink placeholder:text-ink-4 focus:outline-none"
+          />
+          <Button type="submit" disabled={!ask.trim() || active.some((j) => j.kind === "amend")}>
+            Edit notes
+          </Button>
         </form>
       )}
 
@@ -496,14 +518,16 @@ export default function Analysis({ p, reload, openJob }: { p: ProductDetail; rel
       {!analyzing && lastRun && jobs[0]?.id === lastRun.id && (
         <ErrorNote>
           The last analysis failed: {lastRun.error}{" "}
-          <button className="underline" onClick={() => openJob(lastRun.id)}>Open its log</button>
+          <button type="button" className="underline" onClick={() => openJob(lastRun.id)}>
+            Open its log
+          </button>
         </ErrorNote>
       )}
       <ActiveJobs jobs={active} openJob={openJob} />
 
-      {/* the browser: every source as a clip */}
-      <Panel title={`Browser · ${n} clip${n === 1 ? "" : "s"}`} icon="film" bodyClass="overflow-x-auto">
-        <div className="flex gap-3 px-3 pt-2.5 pb-2">
+      {/* the sources, as clips */}
+      <Panel title={`Sources · ${n} clip${n === 1 ? "" : "s"}`} bodyClass="overflow-x-auto">
+        <div className="flex gap-3 px-4 pb-3">
           {p.sources.map((s) => {
             const sa = analysis?.sources[s.key];
             return (
@@ -536,7 +560,7 @@ export default function Analysis({ p, reload, openJob }: { p: ProductDetail; rel
       )}
 
       {analysis && (
-        <Panel title="Project notes" icon="list" bodyClass="grid gap-4 p-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+        <Panel title="Project notes" bodyClass="grid gap-4 px-4 pb-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
           <div>
             <Label>Offer groups</Label>
             <div className="mt-1.5 space-y-1">

@@ -141,10 +141,30 @@ fn stop_engine(app: &AppHandle) {
     }
 }
 
+/// The OS material behind the window: Mica (Windows 11), else Acrylic (Windows 10 1809+), else vibrancy on
+/// macOS. Returns whether one applied.
+fn apply_material(window: &tauri::WebviewWindow) -> bool {
+    #[cfg(target_os = "windows")]
+    {
+        window_vibrancy::apply_mica(window, Some(true))
+            .or_else(|_| window_vibrancy::apply_acrylic(window, Some((12, 12, 14, 200))))
+            .is_ok()
+    }
+    #[cfg(target_os = "macos")]
+    {
+        window_vibrancy::apply_vibrancy(window, window_vibrancy::NSVisualEffectMaterial::HudWindow, None, None).is_ok()
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    {
+        let _ = window;
+        false
+    }
+}
+
 fn fail(app: &AppHandle, msg: &str) {
     app.dialog()
-        .message(format!("{msg}\n\nReinstall BluxTech Studio, or contact support with this message."))
-        .title("BluxTech Studio could not start")
+        .message(format!("{msg}\n\nReinstall CreativeStudio, or contact support with this message."))
+        .title("CreativeStudio could not start")
         .kind(MessageDialogKind::Error)
         .blocking_show();
 }
@@ -330,16 +350,27 @@ pub fn run() {
                     }
                 },
             };
-            WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url.parse().expect("engine url")))
-                .title("BluxTech Studio")
+            // The window draws its own chrome (no native title bar) over the OS material: Mica on Windows 11,
+            // Acrylic before it, vibrancy on macOS. The page knows (html[data-vibrancy]) and lets a hint of the
+            // material through its floor; where no material applies, the webview gets an opaque floor instead.
+            let window = WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url.parse().expect("engine url")))
+                .title("CreativeStudio")
                 .inner_size(1440.0, 900.0)
                 .min_inner_size(1100.0, 680.0)
+                .decorations(false)
+                .transparent(true)
+                // runs before the page's own scripts; index.html turns it into html[data-vibrancy] before first paint
+                .initialization_script("window.__CS_VIBRANCY__ = true;")
                 .center()
                 .build()?;
+            let material = apply_material(&window);
+            if !material {
+                let _ = window.set_background_color(Some(tauri::webview::Color(12, 12, 14, 255)));
+            }
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("error while building BluxTech Studio")
+        .expect("error while building CreativeStudio")
         .run(|app, event| {
             if let RunEvent::Exit = event {
                 stop_engine(app);

@@ -1,4 +1,6 @@
-# BluxTech Studio: architecture
+# CreativeStudio: architecture
+
+(The product was BluxTech Studio until 2026-11-28; identifiers, folders and module names keep that name.)
 
 ```
 ┌────────────────────────── Windows desktop application ──────────────────────────┐
@@ -55,15 +57,23 @@
 The UI is plain HTML served by the engine on a random localhost port, and the Tauri window simply opens that URL.
 Every URL in the UI stays relative (`/api/...`, `/media/...`, SSE streams, `<video>` sources), the boot cookie rides
 on all of them, and the same build runs in a browser for development. The Tauri capability `main` grants that
-origin the Tauri API it needs (the native file pickers); everything else (open in Explorer, folder listing,
-thumbnails) goes through the engine.
+origin the Tauri API it needs (the native file pickers, the window's own close / minimize / maximize / drag, the
+update commands); everything else (open in Explorer, folder listing, thumbnails) goes through the engine.
 
-The look is DaVinci Resolve's graphite workspace built from liquid glass: a slim title bar with the page name in the
-middle, a glass Libraries sidebar, and Resolve's page bar along the bottom (Projects, Fresh edit, Assets, Settings,
-the active one lit amber, the one strong colour). All of it lives in three files: `desktop/src/index.css` (the
-tokens, the `.glass*` classes, the `.backdrop` gradient floor that `index.html` draws behind the app, and the
-reduced-transparency / reduced-motion fallbacks), `ui.tsx` (every primitive is a piece of glass) and `App.tsx`
-(the shell). Page files only compose the primitives, so a restyle never touches them.
+The look (since 2026-11-28) is a macOS-style liquid-glass workspace on a near-black floor: the window draws no
+native title bar (`decorations: false`, `transparent: true`, Mica on Windows 11 with Acrylic as the fallback through
+the `window-vibrancy` crate, an opaque floor where neither applies), a floating 236 px glass sidebar with the app's
+own traffic-light controls, the mark, the five places (Projects, Fresh edit, Library, Jobs, Settings), recent
+products with their footage tint, and the account chip; each screen opens with a glass toolbar of pills, and content
+sits on solid 22 px surfaces. Glass is only for the layer that floats above content (sidebar, toolbars, inspector,
+floating bars, player controls, card strips). One brand colour, the logo's purple, appears on the single primary
+action of a screen and the logo dot; status is a 7 px dot with plain text, never a filled badge. The tokens are CSS
+variables in `desktop/src/theme.css` (colours, six footage tints, glass recipe, radii, timings), mapped to Tailwind
+utilities and the `.glass*` / `.pill-accent` / `.field` / `.press` classes in `index.css` (with the solid fallback
+under `prefers-reduced-transparency` or without `backdrop-filter`, and reduced-motion). `ui.tsx` holds the
+primitives (Glass, Card, Toolbar, Segmented, Status, Progress, Toggle, ...), `brand.tsx` the mark, the tint
+function and the tint wall behind the sign-in card, `chrome.tsx` the window controls, `App.tsx` the shell. Inter is
+bundled (`@fontsource-variable/inter`) behind the system font stack, so the UI needs nothing from the network.
 
 Settings and Setup are written for customers: seven Settings sections (Claude, GPT image generation, Production,
 Performance, Asset library, Projects, Application) and a system readiness panel of eight rows (`desktop/src/readiness.ts`

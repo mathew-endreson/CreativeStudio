@@ -1,0 +1,95 @@
+/* CreativeStudio design tokens: one dark theme, macOS-style liquid glass over a near-black floor.
+   Every colour, radius, blur and timing the UI uses is defined here as a CSS variable; Tailwind utilities map
+   onto them in index.css (@theme inline). Glass is for the layer that floats above content (sidebar, toolbars,
+   inspector, floating bars, player controls, card strips); content sits on solid surfaces. */
+:root {
+  color-scheme: dark;
+
+  /* floor and solid surfaces */
+  --bg: #0c0c0e;
+  --surface: #121214;
+  --surface-2: #17171a;
+  --solid-glass: #1c1c1f; /* what glass becomes without backdrop-filter or under reduced transparency */
+
+  /* text */
+  --ink: #f5f5f7;
+  --ink-2: #d1d1d6;
+  --ink-3: #a1a1a6;
+  --ink-4: #8e8e93;
+
+  /* the one brand colour, and its readable text form */
+  --accent: #9b3dc8;
+  --accent-text: #e2c2ff;
+  --accent-soft: rgb(155 61 200 / 0.18);
+  --on-accent: #ffffff;
+  --focus: #e2c2ff;
+
+  /* status: a 7 px dot with plain text, never a filled pill */
+  --ok: #34c759;
+  --warn: #ffb340;
+  --info: #64d2ff;
+  --muted: #8e8e93;
+  --bad: #ff6961;
+  --bad-soft: rgb(255 105 97 / 0.14);
+
+  /* glass */
+  --glass-bg: rgb(255 255 255 / 0.06);
+  --glass-bg-img: rgb(18 18 22 / 0.3);
+  --glass-bg-active: rgb(255 255 255 / 0.12);
+  --glass-border: rgb(255 255 255 / 0.12);
+  --glass-hi: rgb(255 255 255 / 0.2);
+  --glass-shadow: 0 14px 36px rgb(0 0 0 / 0.35);
+  --glass-blur: 28px;
+  --glass-blur-strong: 40px;
+  --glass-sat: 170%;
+
+  /* hairlines and wells on solid surfaces */
+  --line: rgb(255 255 255 / 0.08);
+  --line-strong: rgb(255 255 255 / 0.12);
+  --well: rgb(0 0 0 / 0.28);
+  --hover: rgb(255 255 255 / 0.06);
+
+  /* the one subtle glow per screen (set per screen on body[data-glow]) */
+  --glow-purple: rgb(155 61 200 / 0.16);
+  --glow-warm: rgb(214 140 70 / 0.1);
+
+  /* footage tints for placeholder thumbnails, each with its lighter frame shade */
+  --tint-1: #6e5440;
+  --tint-1f: #8e725b;
+  --tint-2: #4c6455;
+  --tint-2f: #6b8574;
+  --tint-3: #46587a;
+  --tint-3f: #62779c;
+  --tint-4: #7a4a3e;
+  --tint-4f: #9a675a;
+  --tint-5: #3f5e66;
+  --tint-5f: #5b7e87;
+  --tint-6: #57506a;
+  --tint-6f: #756d8b;
+
+  /* timeline and marks: few colours, muted */
+  --hook: #ffb340;
+  --body: #64d2ff;
+  --cta: #e2c2ff;
+  --audio: #2f6b43;
+  --audio-wave: #8fe0a6;
+  --playhead: #ffffff;
+  --skim: #ff6961;
+  --sel: #e2c2ff;
+
+  /* shape */
+  --r-panel: 24px;
+  --r-card: 22px;
+  --r-input: 14px;
+  --r-pill: 999px;
+
+  /* motion */
+  --t-fast: 150ms;
+  --t-base: 200ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* type */
+  --font-ui: -apple-system, "SF Pro Text", "Inter Variable", Inter, system-ui, sans-serif;
+  --font-tc: "SF Mono", "Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
+  --font-caption: "Thmanyah", "Segoe UI", system-ui, sans-serif;
+}

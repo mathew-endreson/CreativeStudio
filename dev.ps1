@@ -1,4 +1,4 @@
-# BluxTech Studio, dev mode: the engine on http://127.0.0.1:8766 serving the built UI, opened in the browser.
+# CreativeStudio, dev mode: the engine on http://127.0.0.1:8766 serving the built UI, opened in the browser.
 #   .\dev.ps1              start the engine (boot-token auth) and open the UI
 #   .\dev.ps1 -NoAuth      no token on /api (for `npm run dev` in desktop/, which proxies to 8766)
 #   .\dev.ps1 -Build       rebuild the UI first

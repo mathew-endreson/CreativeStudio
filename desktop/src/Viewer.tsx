@@ -55,12 +55,26 @@ const typing = (el: EventTarget | null) => {
   return /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.tagName) || e.isContentEditable || e.getAttribute("role") === "slider";
 };
 
-/** Final Cut's viewer: the picture on black, a transport bar, the timecode in the middle.
+/** The player: the picture on black with 28 px corners, glass transport controls floating over its bottom edge.
  *  Space plays or pauses; the arrow keys step one frame (Shift: ten). */
 export function Viewer({
-  video, src, dur, fps = 30, title, extra, className, placeholder,
+  video,
+  src,
+  dur,
+  fps = 30,
+  title,
+  extra,
+  className,
+  placeholder,
 }: {
-  video: ReturnType<typeof useVideo>; src?: string; dur: number; fps?: number; title?: ReactNode; extra?: ReactNode; className?: string; placeholder?: ReactNode;
+  video: ReturnType<typeof useVideo>;
+  src?: string;
+  dur: number;
+  fps?: number;
+  title?: ReactNode;
+  extra?: ReactNode;
+  className?: string;
+  placeholder?: ReactNode;
 }) {
   const { ref, t, playing, seek, toggle } = video;
   const step = useCallback((n: number) => seek(snap(Math.min(dur, Math.max(0, t + n / fps)))), [seek, t, dur, fps]);
@@ -85,40 +99,41 @@ export function Viewer({
     return () => window.removeEventListener("keydown", on);
   }, [toggle, step, seek, dur]);
 
+  const ctl = "press grid h-[36px] w-[36px] place-items-center rounded-full text-white/85 hover:bg-white/[0.12] hover:text-white";
   return (
-    <section className={cx("glass flex min-h-0 flex-col overflow-hidden rounded-[12px]", className)}>
-      <header className="flex h-[30px] shrink-0 items-center gap-2 border-b border-line bg-surface-2/60 px-2.5">
-        <Icon name="eye" size={13} className="text-ink-3" />
-        <div className="min-w-0 flex-1 truncate text-[11.5px] font-semibold text-ink-2">{title ?? "Viewer"}</div>
-        {extra}
-      </header>
-      <div className="viewer relative grid min-h-0 flex-1 place-items-center">
+    <section className={cx("viewer relative flex min-h-0 flex-col overflow-hidden rounded-[28px]", className)}>
+      {(title || extra) && (
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-2 p-3">
+          {title ? <div className="player-bar pointer-events-auto px-3 py-1 text-[12px] font-medium text-white/85">{title}</div> : <span />}
+          {extra && <div className="pointer-events-auto">{extra}</div>}
+        </div>
+      )}
+      <div className="relative min-h-0 flex-1">
         {src ? (
-          <video ref={ref} src={src} playsInline preload="metadata" onClick={toggle} className="absolute inset-0 h-full w-full cursor-pointer object-contain p-2" />
+          <video ref={ref} src={src} playsInline preload="metadata" onClick={toggle} className="absolute inset-0 h-full w-full cursor-pointer object-contain" />
         ) : (
-          <div className="text-[12px] text-white/50">{placeholder ?? "no video"}</div>
+          <div className="grid h-full place-items-center text-[12px] text-white/50">{placeholder ?? "no video"}</div>
         )}
       </div>
-      {/* the transport bar */}
-      <div className="flex h-[40px] shrink-0 items-center gap-1 border-t border-line px-2">
-        <div className="tc w-[84px] text-[10.5px] text-ink-3">{tc(dur, fps)}</div>
-        <div className="flex flex-1 items-center justify-center gap-0.5">
-          <button onClick={() => step(-1)} title="One frame back (←)" aria-label="One frame back" className="grid h-7 w-8 place-items-center rounded-[5px] text-ink-2 hover:bg-surface-3 hover:text-ink">
+      {/* the transport, floating over the bottom of the picture */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center px-3">
+        <div className="player-bar pointer-events-auto flex items-center gap-1 py-1 pr-3 pl-3">
+          <span className="tc w-[82px] text-[11px] text-white/70" title={`${t.toFixed(3)} s · frame ${Math.round(t * fps)}`}>
+            {tc(t, fps)}
+          </span>
+          <button type="button" onClick={() => step(-1)} title="One frame back (←)" aria-label="One frame back" className={ctl}>
             <Icon name="stepBack" size={14} />
           </button>
-          <button onClick={toggle} title="Play / pause (Space)" aria-label={playing ? "Pause" : "Play"} className="grid h-7 w-9 place-items-center rounded-[5px] text-ink hover:bg-surface-3">
+          <button type="button" onClick={toggle} title="Play / pause (Space)" aria-label={playing ? "Pause" : "Play"} className={cx(ctl, "text-white")}>
             <Icon name={playing ? "pause" : "play"} size={16} />
           </button>
-          <button onClick={() => step(1)} title="One frame forward (→)" aria-label="One frame forward" className="grid h-7 w-8 place-items-center rounded-[5px] text-ink-2 hover:bg-surface-3 hover:text-ink">
+          <button type="button" onClick={() => step(1)} title="One frame forward (→)" aria-label="One frame forward" className={ctl}>
             <Icon name="stepFwd" size={14} />
           </button>
-        </div>
-        <div className="tc w-[84px] rounded-[4px] bg-well px-1.5 py-0.5 text-right text-[11.5px] text-ink shadow-[inset_0_1px_2px_rgb(0_0_0/0.3)]" title={`${t.toFixed(3)} s · frame ${Math.round(t * fps)}`}>
-          {tc(t, fps)}
+          <Scrub t={t} dur={dur} onSeek={seek} />
+          <span className="tc w-[82px] text-right text-[11px] text-white/50">{tc(dur, fps)}</span>
         </div>
       </div>
-      {/* a thin scrub bar under the transport */}
-      <Scrub t={t} dur={dur} onSeek={seek} />
     </section>
   );
 }
@@ -133,7 +148,12 @@ function Scrub({ t, dur, onSeek }: { t: number; dur: number; onSeek: (t: number)
   return (
     <div
       ref={bar}
-      className="relative h-[6px] shrink-0 cursor-pointer bg-well"
+      role="slider"
+      aria-label="Position"
+      aria-valuemin={0}
+      aria-valuemax={Math.round(dur)}
+      aria-valuenow={Math.round(t)}
+      className="relative mx-2 h-[6px] w-[140px] cursor-pointer rounded-full bg-white/[0.18]"
       onPointerDown={(e) => {
         down.current = true;
         e.currentTarget.setPointerCapture(e.pointerId);
@@ -142,7 +162,7 @@ function Scrub({ t, dur, onSeek }: { t: number; dur: number; onSeek: (t: number)
       onPointerMove={(e) => down.current && onSeek(at(e.clientX))}
       onPointerUp={() => (down.current = false)}
     >
-      <div className="absolute inset-y-0 left-0 bg-accent/70" style={{ width: `${dur ? Math.min(100, (t / dur) * 100) : 0}%` }} />
+      <div className="absolute inset-y-0 left-0 rounded-full bg-white/85" style={{ width: `${dur ? Math.min(100, (t / dur) * 100) : 0}%` }} />
     </div>
   );
 }

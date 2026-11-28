@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, errText, type EnvCheck, type Job } from "./api";
+import { BrandMark, PRODUCT_NAME } from "./brand";
 import { useDevMode } from "./devmode";
 import { isActive, LogView, useJobs, useOnJobEnd } from "./Jobs";
 import { allReady, readiness } from "./readiness";
-import { Button, Card, Chip, cx, Dot, ErrorNote, field, Loading, PageHeader } from "./ui";
+import { Button, Card, cx, Dot, ErrorNote, field, Loading, Status, Toolbar } from "./ui";
 
 /** The system readiness panel, with the setup job that fetches what a download can fetch. Technical details
  *  (file locations, the raw check) only in developer mode. */
@@ -47,24 +48,22 @@ export default function Setup({ onDone, embedded }: { onDone?: () => void; embed
   };
 
   return (
-    <div className={embedded ? "" : "mx-auto min-h-full max-w-[760px] p-6"}>
+    <div className={embedded ? "" : "mx-auto min-h-full max-w-[760px] p-[10px]"}>
       {!embedded && (
-        <PageHeader
-          icon="gear"
-          title="Set up this PC"
-          sub="BluxTech Studio produces the ads on this machine. The first start fetches a few large pieces once; after that only the Claude calls leave this PC."
-        />
+        <Toolbar title="Set up this PC" sub={`${PRODUCT_NAME} produces the ads on this machine. The first start fetches a few large pieces once; after that only the Claude calls leave this PC.`}>
+          <BrandMark size={28} tile />
+        </Toolbar>
       )}
       {err && <ErrorNote>{err}</ErrorNote>}
-      <Card>
+      <Card className="overflow-hidden">
         {!env && <Loading>Checking this PC…</Loading>}
         {rows.map((r) => (
-          <div key={r.id} className="flex items-start gap-3 border-b border-line px-4 py-2.5 last:border-b-0">
+          <div key={r.id} className="flex items-start gap-3 border-b border-line px-5 py-3 last:border-b-0">
             <Dot tone={r.tone} />
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-3">
-                <span className="font-medium">{r.label}</span>
-                <span className={cx("shrink-0 text-[12px] font-medium", r.tone === "ok" ? "text-ok" : r.tone === "bad" ? "text-bad" : "text-warn")}>{r.status}</span>
+                <span className="text-[13px] font-medium">{r.label}</span>
+                <span className={cx("shrink-0 text-[12px]", r.tone === "ok" ? "text-ink-3" : r.tone === "bad" ? "text-bad" : "text-warn")}>{r.status}</span>
               </div>
               {r.hint && <div className="mt-0.5 text-[12px] leading-snug text-ink-3">{r.hint}</div>}
             </div>
@@ -72,46 +71,38 @@ export default function Setup({ onDone, embedded }: { onDone?: () => void; embed
         ))}
       </Card>
       {needsKey && (
-        <Card className="mt-3 p-4">
-          <div className="font-medium">Anthropic API key</div>
+        <Card className="mt-[10px] p-5">
+          <div className="text-[13px] font-medium">Anthropic API key</div>
           <div className="mt-0.5 text-[12.5px] text-ink-3">The editing steps run on Claude through your own key (console.anthropic.com → API keys). It is stored encrypted on this computer and never shown again.</div>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <input
-              type="password"
-              placeholder="sk-ant-…"
-              value={key}
-              onChange={(e) => setKey(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && key.trim() && saveKey()}
-              className={cx(field, "h-[28px] w-[360px]")}
-              aria-label="Anthropic API key"
-            />
-            <Button variant="primary" small onClick={saveKey} disabled={keyBusy || !key.trim()}>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <input type="password" placeholder="sk-ant-…" value={key} onChange={(e) => setKey(e.target.value)} onKeyDown={(e) => e.key === "Enter" && key.trim() && saveKey()} className={cx(field, "w-[360px]")} aria-label="Anthropic API key" />
+            <Button variant="primary" onClick={saveKey} disabled={keyBusy || !key.trim()}>
               {keyBusy ? "Saving…" : "Save key"}
             </Button>
           </div>
         </Card>
       )}
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      <div className="mt-[10px] flex flex-wrap items-center gap-2">
         <Button onClick={load} icon="refresh">
           Check again
         </Button>
         {fixable && (
-          <Button variant="primary" onClick={run} disabled={running}>
+          <Button variant={onDone && ready ? "default" : "primary"} onClick={run} disabled={running}>
             {running ? "Setting up…" : "Run setup"}
           </Button>
         )}
         {onDone && (
-          <Button variant={ready ? "primary" : "default"} onClick={onDone} disabled={!env}>
+          <Button variant={ready || !fixable ? "primary" : "default"} onClick={onDone} disabled={!env}>
             {ready ? "Continue" : "Continue anyway"}
           </Button>
         )}
-        {env && !fixable && ready && <Chip tone="ok">everything is in place</Chip>}
+        {env && !fixable && ready && <Status tone="ok">Everything is in place</Status>}
       </div>
       {dev && env && (
-        <Card className="mt-3">
-          <div className="border-b border-line px-4 py-1.5 text-[10.5px] font-semibold tracking-[0.06em] text-ink-3 uppercase">Developer details</div>
+        <Card className="mt-[10px] overflow-hidden">
+          <div className="border-b border-line px-5 py-2 text-[11px] font-medium text-ink-4">Developer details</div>
           {env.items.map((i) => (
-            <div key={i.id} className="flex items-start gap-3 border-b border-line px-4 py-2 last:border-b-0">
+            <div key={i.id} className="flex items-start gap-3 border-b border-line px-5 py-2 last:border-b-0">
               <Dot tone={i.ok ? "ok" : i.required ? "bad" : "warn"} />
               <div className="min-w-0 flex-1">
                 <div className="text-[12.5px] font-medium">
@@ -123,20 +114,22 @@ export default function Setup({ onDone, embedded }: { onDone?: () => void; embed
               </div>
             </div>
           ))}
-          <div className="px-4 py-2 font-mono text-[11.5px] text-ink-3">
+          <div className="px-5 py-2 font-mono text-[11.5px] text-ink-3">
             workspace {env.workspace} · mode {env.mode} · runner {env.runner}
             {env.resources && <> · resources {env.resources}</>}
           </div>
         </Card>
       )}
       {live && (
-        <Card className="mt-3 h-[260px] overflow-hidden">
-          <div className="flex items-center gap-2 border-b border-line px-3 py-1.5 text-[12.5px]">
-            <Chip tone={live.status === "done" ? "ok" : live.status === "failed" ? "bad" : "accent"}>{live.status}</Chip>
-            {live.title}
-            {live.error && <span className="text-bad">{live.error}</span>}
+        <Card className="mt-[10px] h-[280px] overflow-hidden">
+          <div className="flex items-center gap-3 px-5 py-2.5 text-[12.5px]">
+            <Status tone={live.status === "done" ? "ok" : live.status === "failed" ? "bad" : "info"} pulse={isActive(live)}>
+              {live.status}
+            </Status>
+            <span className="truncate">{live.title}</span>
+            {live.error && <span className="truncate text-bad">{live.error}</span>}
           </div>
-          <div className="h-[220px]">
+          <div className="h-[232px] border-t border-line">
             <LogView job={live} />
           </div>
         </Card>

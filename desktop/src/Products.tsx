@@ -1,118 +1,148 @@
 import { useEffect, useState } from "react";
-import { api, errText, type ProductCard } from "./api";
+import { api, errText, type Job, type ProductCard } from "./api";
+import { FrameTiles } from "./brand";
 import { Icon } from "./icons";
-import { Button, Chip, cx, Empty, ErrorNote, Loading, PageHeader } from "./ui";
+import { ActivityPanel, isActive, useOnJobEnd } from "./Jobs";
+import { thumb } from "./SegEditor";
+import { Button, cx, Empty, ErrorNote, Loading, Search, Segmented, Status, Toolbar, type Tone } from "./ui";
 
-function Count({ n, label }: { n: number | undefined; label: string }) {
+type Filter = "all" | "progress" | "ready";
+
+/** The four stages a project goes through, lit as far as it got. */
+function StageBar({ p }: { p: ProductCard }) {
+  const stages = [
+    { label: "Analyze", done: !!p.analysis },
+    { label: "Propose", done: (p.proposals ?? 0) > 0 },
+    { label: "Build", done: (p.mixes ?? 0) > 0 },
+    { label: "Render", done: (p.ads ?? 0) > 0 },
+  ];
   return (
-    <div className="min-w-0">
-      <div className="num text-[15px] leading-none font-semibold">{n ?? 0}</div>
-      <div className="mt-1 truncate text-[10.5px] text-ink-3">{label}</div>
+    <div className="flex gap-1" title={stages.map((s) => `${s.label}: ${s.done ? "done" : "not yet"}`).join(" · ")} aria-label="Stages">
+      {stages.map((s) => (
+        <span key={s.label} className={cx("h-[4px] flex-1 rounded-full", s.done ? "bg-ink/80" : "bg-white/[0.12]")} />
+      ))}
     </div>
   );
 }
 
-/** A decorative storyline: the project drawn as hook / body / CTA clips, the way Final Cut draws a project thumbnail. */
-function Storyline({ seed, done }: { seed: string; done: boolean }) {
-  let h = 0;
-  for (const c of seed) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  const w = [14 + (h % 9), 46 + ((h >> 4) % 18), 18 + ((h >> 9) % 8)];
-  return (
-    <div className={cx("flex h-[18px] gap-[2px]", !done && "opacity-50")}>
-      <div className="clip rounded-[3px] bg-hook" style={{ flex: w[0] }} />
-      <div className="clip rounded-[3px] bg-body" style={{ flex: w[1] }} />
-      <div className="clip rounded-[3px] bg-cta" style={{ flex: w[2] }} />
-    </div>
-  );
+function statusOf(p: ProductCard, busy: boolean): { tone: Tone; text: string } {
+  if (busy) return { tone: "info", text: "Working" };
+  if ((p.ads ?? 0) > 0) return { tone: "ok", text: "Ready" };
+  if (p.analysis) return { tone: "warn", text: "In progress" };
+  return { tone: "neutral", text: "Not analysed" };
 }
 
-export default function Products() {
+export default function Products({ jobs, openJob }: { jobs: Job[]; openJob: (id: number) => void }) {
   const [list, setList] = useState<ProductCard[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [q, setQ] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
+  // real frames from the engine for the cards of analysed products: the first three sources that have a copy
+  const [thumbs, setThumbs] = useState<Record<string, string[]>>({});
+  const load = () =>
+    api
+      .products()
+      .then((l) => {
+        setList(l);
+        for (const p of l.filter((x) => x.analysis && !x.not_imported && !x.error).slice(0, 24)) {
+          api
+            .product(p.slug)
+            .then((d) => {
+              const t = d.sources.filter((s) => s.copy).slice(0, 3).map((s) => thumb(p.slug, s.key, 45, 240));
+              if (t.length) setThumbs((m) => ({ ...m, [p.slug]: t }));
+            })
+            .catch(() => {});
+        }
+      })
+      .catch((e) => setErr(errText(e)));
   useEffect(() => {
-    api.products().then(setList).catch((e) => setErr(errText(e)));
+    load();
   }, []);
+  useOnJobEnd(jobs, load);
 
   if (err) return <ErrorNote>Could not load the projects: {err}</ErrorNote>;
   if (!list) return <Loading />;
-  const shown = list.filter((p) => !q.trim() || `${p.name} ${p.name_ar ?? ""} ${p.slug}`.toLowerCase().includes(q.trim().toLowerCase()));
+  const busy = new Set(jobs.filter(isActive).map((j) => j.slug));
+  const shown = list.filter((p) => {
+    if (q.trim() && !`${p.name} ${p.name_ar ?? ""} ${p.slug}`.toLowerCase().includes(q.trim().toLowerCase())) return false;
+    if (filter === "ready") return (p.ads ?? 0) > 0;
+    if (filter === "progress") return busy.has(p.slug) || (!!p.analysis && !(p.ads ?? 0));
+    return true;
+  });
 
   return (
-    <div>
-      <PageHeader
-        icon="film"
-        title="Projects"
-        sub="A project is one product: its finished ads, the analysis, the ads proposed from them, and the ones rendered into its Ads folder."
-        actions={
-          <>
-            <label className="relative">
-              <Icon name="search" size={13} className="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-ink-3" />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search"
-                dir="auto"
-                className="h-[28px] w-[200px] rounded-[6px] border border-line bg-well pr-2 pl-7 text-[12.5px] placeholder:text-ink-3 focus:border-accent focus:outline-none"
-              />
-            </label>
-            <Button icon="wand" onClick={() => (location.hash = "#/fresh")}>
-              Fresh edit
-            </Button>
-            <Button variant="primary" icon="plus" onClick={() => (location.hash = "#/new")}>
-              New project
-            </Button>
-          </>
-        }
-      />
-      {list.length === 0 && <Empty title="No project yet">Create one from a folder of finished ads, or start a fresh edit from one footage.</Empty>}
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(290px,1fr))] gap-3">
-        {shown.map((p) =>
-          p.not_imported || p.error ? (
-            <div key={p.slug} className="rounded-[12px] border border-dashed border-line-strong bg-surface/40 p-3 backdrop-blur-md">
-              <div className="flex items-center gap-2 font-semibold">
-                <Icon name="folder" size={14} className="text-ink-3" />
-                {p.slug}
-              </div>
-              <div className="mt-1 text-[12px] text-ink-2">{p.error ?? "This batch folder has no product.json yet."}</div>
-            </div>
-          ) : (
-            <a
-              key={p.slug}
-              href={`#/p/${p.slug}/analysis`}
-              className="glass group block overflow-hidden rounded-[12px] ring-2 ring-transparent transition-[box-shadow,transform] duration-150 hover:-translate-y-px hover:ring-sel focus-visible:ring-sel"
-            >
-              <div className="viewer relative flex h-[112px] flex-col justify-between p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <Icon name="star" size={15} className={p.analysis ? "text-sel" : "text-white/30"} />
-                  <Chip tone={p.analysis ? "ok" : "neutral"}>{p.analysis ? "analysed" : "not analysed"}</Chip>
-                </div>
-                <div dir="auto" className="font-caption truncate text-[22px] leading-tight font-black text-white/90">
-                  {p.name_ar || p.name}
-                </div>
-                <Storyline seed={p.slug} done={!!p.analysis} />
-              </div>
-              <div className="border-t border-line px-3 py-2.5">
-                <div className="truncate text-[13.5px] font-semibold">{p.name}</div>
-                <div className="mt-2.5 grid grid-cols-4 gap-2">
-                  <Count n={p.sources} label="sources" />
-                  <Count n={p.proposals} label="proposals" />
-                  <Count n={p.mixes} label="mixes" />
-                  <Count n={p.ads} label="ads" />
-                </div>
-                {!!p.todo?.length && (
-                  <div className="mt-2.5 flex flex-wrap gap-1">
-                    {p.todo.map((t) => (
-                      <Chip key={t} tone="warn">
-                        missing: {t}
-                      </Chip>
-                    ))}
+    <div className="flex h-full min-h-0 flex-col">
+      <Toolbar title="Projects" sub={`${list.length} project${list.length === 1 ? "" : "s"}`}>
+        <Segmented
+          small
+          value={filter}
+          onChange={setFilter}
+          options={[
+            { id: "all", label: "All" },
+            { id: "progress", label: "In progress" },
+            { id: "ready", label: "Ready" },
+          ]}
+        />
+        <Search value={q} onChange={setQ} />
+        <Button variant="primary" icon="plus" onClick={() => (location.hash = "#/new")}>
+          New
+        </Button>
+      </Toolbar>
+      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_300px] gap-[10px]">
+        <div className="min-h-0 overflow-auto">
+          {list.length === 0 && <Empty title="No project yet">Create one from a folder of finished ads, or start a fresh edit from one footage.</Empty>}
+          {list.length > 0 && shown.length === 0 && <Empty title="Nothing matches">Try another filter or search.</Empty>}
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(290px,1fr))] gap-[10px]">
+            {shown.map((p) => {
+              if (p.not_imported || p.error) {
+                return (
+                  <div key={p.slug} className="flex h-[290px] flex-col justify-end rounded-[22px] border border-line bg-surface p-4">
+                    <div className="flex items-center gap-2 font-semibold">
+                      <Icon name="folder" size={14} className="text-ink-3" />
+                      {p.slug}
+                    </div>
+                    <div className="mt-1 text-[12px] text-ink-3">{p.error ?? "This batch folder has no product.json yet."}</div>
                   </div>
-                )}
-              </div>
-            </a>
-          ),
-        )}
+                );
+              }
+              const s = statusOf(p, busy.has(p.slug));
+              return (
+                <a
+                  key={p.slug}
+                  href={`#/p/${p.slug}/analysis`}
+                  className="press group relative block h-[290px] overflow-hidden rounded-[22px] border border-line focus-visible:outline-2 focus-visible:outline-focus"
+                >
+                  <FrameTiles seed={p.slug} height={290} thumbs={thumbs[p.slug]} />
+                  <div className="glass-img absolute inset-x-0 bottom-0 rounded-none border-x-0 border-b-0 px-4 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="truncate text-[14px] font-semibold">{p.name || p.slug}</div>
+                        {p.name_ar && (
+                          <div dir="auto" className="truncate text-[12px] text-ink-3">
+                            {p.name_ar}
+                          </div>
+                        )}
+                      </div>
+                      <span className="num shrink-0 text-[12px] text-ink-2">
+                        {p.ads ?? 0} ad{p.ads === 1 ? "" : "s"}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <Status tone={s.tone} pulse={s.tone === "info"}>
+                        {s.text}
+                      </Status>
+                      {!!p.todo?.length && <span className="truncate text-[11.5px] text-ink-4">missing: {p.todo.join(", ")}</span>}
+                    </div>
+                    <div className="mt-2.5">
+                      <StageBar p={p} />
+                    </div>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+        <ActivityPanel jobs={jobs} openJob={openJob} className="max-h-full self-start" />
       </div>
     </div>
   );

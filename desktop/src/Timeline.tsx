@@ -134,7 +134,7 @@ export default function Timeline({ dur, t, scan, curves, a, lift, onSeek, onDrag
     <div className="select-none">
       {/* click anywhere on the lanes to seek; the overlay only measures and carries the playhead, the skimmer and the handles */}
       <div
-        className="relative grid cursor-pointer gap-y-[3px] rounded-[6px] bg-well py-1 pr-3"
+        className="relative grid cursor-pointer gap-y-[4px] rounded-[16px] bg-well py-1.5 pr-3"
         style={{ gridTemplateColumns: `${GUTTER}px minmax(0,1fr)` }}
         onPointerDown={(e) => {
           if (e.clientX >= track.current!.getBoundingClientRect().left) onSeek(timeAt(e.clientX));
@@ -185,21 +185,21 @@ export default function Timeline({ dur, t, scan, curves, a, lift, onSeek, onDrag
         <Row label="storyline" h={34}>
           {a ? (
             <>
-              <div className="clip absolute inset-y-0 flex items-center overflow-hidden rounded-[5px] border border-black/30 bg-hook px-2 text-[11.5px] font-semibold text-black/80" style={span(0, a.hook_end)}>
+              <div className="clip absolute inset-y-0 flex items-center overflow-hidden rounded-[9px] border border-black/30 bg-hook px-2 text-[11.5px] font-semibold text-black/80" style={span(0, a.hook_end)}>
                 Hook
               </div>
               <div className="hatch absolute inset-y-[6px] text-ink-3/50" style={span(a.hook_end, a.body_start)} title="the hook's own flash" />
-              <div className="clip absolute inset-y-0 flex items-center overflow-hidden rounded-[5px] border border-black/30 bg-body px-2 text-[11.5px] font-semibold text-white" style={span(a.body_start, bodyEnd)}>
+              <div className="clip absolute inset-y-0 flex items-center overflow-hidden rounded-[9px] border border-black/30 bg-body px-2 text-[11.5px] font-semibold text-white" style={span(a.body_start, bodyEnd)}>
                 Body
               </div>
               {a.cta_start != null && (
-                <div className="clip absolute inset-y-0 flex items-center overflow-hidden rounded-[5px] border border-black/30 bg-cta px-2 text-[11.5px] font-semibold text-white" style={span(a.cta_start, dur)}>
+                <div className="clip absolute inset-y-0 flex items-center overflow-hidden rounded-[9px] border border-black/30 bg-cta px-2 text-[11.5px] font-semibold text-white" style={span(a.cta_start, dur)}>
                   CTA
                 </div>
               )}
             </>
           ) : (
-            <div className="absolute inset-0 flex items-center rounded-[5px] border border-dashed border-line px-2 text-[11.5px] text-ink-3">
+            <div className="absolute inset-0 flex items-center rounded-[9px] border border-dashed border-line px-2 text-[11.5px] text-ink-3">
               not analysed yet: hook, body and CTA appear here after the analysis
             </div>
           )}
@@ -234,7 +234,7 @@ export default function Timeline({ dur, t, scan, curves, a, lift, onSeek, onDrag
         )}
 
         <Row label="voice" h={46}>
-          <div className="clip absolute inset-0 overflow-hidden rounded-[5px] border border-black/30 bg-audio">
+          <div className="clip absolute inset-0 overflow-hidden rounded-[9px] border border-black/30 bg-audio">
             {scan.silences.map((s, i) => (
               <div key={i} className="absolute inset-y-0 bg-black/35" style={span(s.a, s.b, 2)} title={`silence ${fmt(s.a)}–${fmt(s.b)} s (${s.dur} s): a place to cut`} />
             ))}
@@ -247,7 +247,7 @@ export default function Timeline({ dur, t, scan, curves, a, lift, onSeek, onDrag
         </Row>
 
         <Row label="flashes, cuts" h={14}>
-          <div className="absolute inset-0 rounded-[3px] bg-surface-2/60">
+          <div className="absolute inset-0 rounded-[3px] bg-white/[0.06]">
             {scan.cuts.map((c) => (
               <div key={c.f} className="absolute inset-y-0.5 w-px bg-ink-2" style={{ left: pct(c.t) }} title={`editor's cut at ${fmt(c.t, 3)} s (frame ${c.f})`} />
             ))}

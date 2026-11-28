@@ -15,7 +15,7 @@ import shutil
 import sys
 from pathlib import Path
 
-APP_NAME = "BluxTech Studio"
+APP_NAME = "CreativeStudio"   # the product's display name; folder names and the bundle identifier keep the old one
 VERSION = "0.1.0"
 
 PKG = Path(__file__).resolve().parent                # bluxtech_engine/
