@@ -63,13 +63,18 @@ jobs:
       - name: Pillow for the icon script
         run: pip install pillow
 
+      # a step's own env is not visible to its `if`, and `secrets` is not available there at all: check in the shell
       - name: The updater signing key must be in the repository secrets
-        if: env.TAURI_SIGNING_PRIVATE_KEY == ''
         env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
-          Write-Error "Add the TAURI_SIGNING_PRIVATE_KEY and TAURI_SIGNING_PRIVATE_KEY_PASSWORD secrets (Settings > Secrets and variables > Actions): the build signs the update artifact with them. See README, Updates."
-          exit 1
+          if (-not $env:SIGNING_KEY) {
+            Write-Error "Add the TAURI_SIGNING_PRIVATE_KEY and TAURI_SIGNING_PRIVATE_KEY_PASSWORD secrets (Settings > Secrets and variables > Actions): the build signs the update artifact with them. See README, Updates."
+            exit 1
+          }
+          if (-not $env:SIGNING_PASSWORD) { Write-Warning "TAURI_SIGNING_PRIVATE_KEY_PASSWORD is empty: the key is expected to have no password." }
+          Write-Output "signing key present ($($env:SIGNING_KEY.Length) characters)"
 
       - name: Build the installer (signed update artifact + latest.json)
         env:
