@@ -63,15 +63,16 @@ def init(workspace=None, resources=None, port=None, auth=True, data=None):
         ROOT = Path(workspace).resolve() if workspace else STUDIO.parent
     if data:
         DATA = Path(data).resolve()
-    # the illustration library: the GPT asset tool's folder when this PC has it (the owner's machine), else the copy
-    # the installer ships, laid into the workspace by environment.init_workspace (BLUXTECH_GPT_DIR overrides both)
+    # the picture library: the GPT asset tool's folder when this PC has it (the owner's machine), else the app's
+    # own folder in the workspace, which starts empty and fills from the Library screen (nothing is shipped;
+    # BLUXTECH_GPT_DIR overrides both)
     global GPT_DIR
     env_lib = os.environ.get("BLUXTECH_GPT_DIR")
     if env_lib:
         GPT_DIR = Path(env_lib)
     elif (GPT_TOOL_DIR / "library.json").exists():
         GPT_DIR = GPT_TOOL_DIR
-    elif RESOURCES and (RESOURCES / "assets" / "library.json").exists():
+    else:
         GPT_DIR = ROOT / "assets"
     HF = ROOT / "_hyperframes"
     SKILL = ROOT / ".claude" / "skills" / "bluxstudio-skill"

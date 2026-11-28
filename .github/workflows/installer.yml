@@ -4,10 +4,10 @@
 #   - Pushing a tag like v0.1.0 also attaches it to a GitHub release.
 #
 # The runner has Node, Python, Rust and the MSVC toolchain. installer\build.ps1 downloads the embedded Python, Node,
-# HyperFrames and FFmpeg (cached between runs), stages everything and runs `tauri build`. The illustration library
-# comes from assets-library/ in this repository; the Supabase config and the license public key are committed too
-# (both hold public values). The matte model is not on the runner: the installed app's Setup screen fetches it with
-# the first cutout warm-up instead.
+# HyperFrames and FFmpeg (cached between runs), stages everything and runs `tauri build`. No picture library is
+# shipped (each PC fills its own from the Library screen); the Supabase config and the license public key are
+# committed (both hold public values). The matte model is not on the runner: the installed app's Setup screen
+# fetches it with the first cutout warm-up instead.
 name: installer
 
 on:
@@ -80,7 +80,7 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: .\installer\build.ps1 -LibraryDir (Join-Path $PWD "assets-library") -Tag "${{ github.ref_name }}"
+        run: .\installer\build.ps1 -Tag "${{ github.ref_name }}"
 
       - name: The release must carry the version the app was built with
         if: startsWith(github.ref, 'refs/tags/')

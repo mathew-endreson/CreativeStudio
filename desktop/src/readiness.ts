@@ -29,7 +29,7 @@ const WHY: Record<string, string> = {
   skill: "The editing tools are missing: run Setup, or reinstall.",
   darijadz: "The Darija guide is missing: run Setup.",
   claude: "Add an Anthropic API key, or use the Claude Code login on this PC (Settings → Claude).",
-  gpt: "No illustration library: ads use the jar and the discs only.",
+  gpt: "No picture library yet: add pictures in Library; until then ads use each project's own pictures.",
   codex: "GPT drawing needs the ChatGPT desktop app with Codex on this PC; without it the library is used as it is.",
   workspace: "The projects folder cannot be written: check Documents.",
   disk: "Less than 10 GB free: cut-outs and renders need room.",

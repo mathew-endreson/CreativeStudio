@@ -98,9 +98,10 @@ def check():
     else:
         add("claude", "Claude Code CLI (your login)", config.claude_bin(),
             config.claude_bin() or "not found: install Claude Code and run `claude` once, or switch to the API key runner")
-    lib_ok = (config.GPT_DIR / "library.json").exists()
-    add("gpt", "Illustration library (the orange health pictures)", lib_ok,
-        str(config.GPT_DIR) if lib_ok else "no library: ads get no pictures", required=False, fix="setup")
+    from . import assetlib
+    n_lib = assetlib.counts(config.GPT_DIR / "library.json")["pictures"] if (config.GPT_DIR / "library.json").exists() else 0
+    add("gpt", "Picture library", config.GPT_DIR.is_dir(),
+        f"{n_lib} picture(s) in {config.GPT_DIR}" if n_lib else f"empty: add pictures in Library ({config.GPT_DIR})", required=False)
     codex = config.codex_bin()
     add("codex", "GPT drawing tool (the ChatGPT / Codex desktop app)", codex,
         codex or "not installed: new pictures are not drawn, the library is used as it is", required=False)
@@ -143,15 +144,9 @@ def init_workspace():
     old = config.ROOT / ".claude" / "skills" / "camel-gpt"
     if (old / ".bluxtech-version").exists():
         shutil.rmtree(old)
-    # the illustration library, when this PC has no GPT asset tool of its own (replaced on every new app version)
-    lib_src, lib_dst = res / "assets", config.ROOT / "assets"
-    if config.GPT_DIR == lib_dst and (lib_src / "library.json").exists():
-        stamp = lib_dst / ".bluxtech-version"
-        if not lib_dst.exists() or not stamp.exists() or stamp.read_text(encoding="utf-8").strip() != config.VERSION:
-            if lib_dst.exists():
-                shutil.rmtree(lib_dst)
-            shutil.copytree(lib_src, lib_dst)
-            stamp.write_text(config.VERSION, encoding="utf-8")
+    # the app's own picture library (no GPT asset tool on this PC): an empty folder the Library screen fills
+    if config.GPT_DIR == config.ROOT / "assets":
+        (config.GPT_DIR / "generated").mkdir(parents=True, exist_ok=True)
     hf_src = res / "hyperframes"
     nm = config.HF / "node_modules"
     src = hf_src / "node_modules"

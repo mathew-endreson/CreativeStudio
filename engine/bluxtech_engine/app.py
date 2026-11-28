@@ -19,7 +19,7 @@ from fastapi import Body, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import claude_runner, config, darija, environment, fresh, license, products, schemas, schemas_more as SM, security, settings, stages, store
+from . import claude_runner, config, darija, environment, fresh, library as piclib, license, products, schemas, schemas_more as SM, security, settings, stages, store
 from .jobs import ACTIVE, Jobs, run_cmd
 
 jobs = Jobs()
@@ -27,6 +27,7 @@ jobs.register("cmd", run_cmd)
 jobs.register("claude", claude_runner.run_stage)
 jobs.register("setup", environment.setup_job)
 jobs.register("pictures", products.pictures_job)
+jobs.register("library", piclib.pictures_job)
 jobs.register("fresh_init", fresh.init_job)
 jobs.register("fresh_transcribe", fresh.transcribe_job)
 jobs.register("fresh_cutout", fresh.cutout_job)
@@ -593,13 +594,38 @@ def redo_cutout(slug: str):
     return {"jobs": [public(jobs.get(jid))]}
 
 
-# ------------------------------------------------------------------ library (GPT pictures)
+# ------------------------------------------------------------------ library (this PC's pictures)
 
 @app.get("/api/library")
 def library():
-    lib = store.jload(config.GPT_DIR / "library.json") or {}
-    return {"dir": str(config.GPT_DIR), "updated": lib.get("updated"), "assets": lib.get("assets", []),
-            "exists": (config.GPT_DIR / "library.json").exists()}
+    return piclib.info()
+
+
+@app.post("/api/library/pictures")
+def add_library_pictures(body: SM.AddPictures):
+    """Pictures for the library of this PC: checked now, prepared and indexed by a job (`reindex` alone indexes
+    the folder again, after pictures were dropped into it by hand)."""
+    license.require()
+    try:
+        files = piclib.stage(body.files)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    if not files and not body.reindex:
+        raise HTTPException(422, "no picture given")
+    dep = next((j["id"] for j in jobs.list("library", 20) if j["kind"] == "library" and j["status"] in ACTIVE), None)
+    title = f"Prepare {len(files)} picture{'s' if len(files) != 1 else ''} for the library" if files else "Index the library again"
+    jid = jobs.add("library", "light", "library", title, {"type": "library", "files": files}, depends_on=dep)
+    return {"added": len(files), "library": piclib.info(), "jobs": [public(jobs.get(jid))]}
+
+
+@app.delete("/api/library/{pid}")
+def remove_library_picture(pid: str):
+    """One picture out of the library of this PC (its file goes when it sits inside the library folder)."""
+    try:
+        piclib.remove(pid)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+    return piclib.info()
 
 
 @app.get("/api/library/search")

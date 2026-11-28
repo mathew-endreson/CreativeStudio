@@ -212,17 +212,17 @@ export default function Settings({ info, reloadApp, update }: { info: AppInfo; r
         </Section>
 
         {/* 5. Asset library */}
-        <Section title="Asset library" sub="The pictures the ads can show in front of the speaker: the house illustrations, plus the pictures you upload for each project.">
-          <Row label="Illustration library" hint="The illustrations that ship with the app, matched to what the speaker says.">
+        <Section title="Asset library" sub="The pictures the ads can show in front of the speaker: the library of this PC, plus the pictures you add to each project.">
+          <Row label="Picture library" hint="Pictures every ad may use, matched to what the speaker says. The app ships none: you add them in Library.">
             <div className="flex flex-wrap items-center gap-3">
-              <Status tone={lib?.exists ? "ok" : "warn"}>{lib ? (lib.exists ? `${lib.assets.length} illustrations` : "No library on this PC") : "…"}</Status>
+              <Status tone={lib?.counts?.pictures ? "ok" : "neutral"}>{lib ? (lib.counts?.pictures ? `${lib.counts.pictures} picture${lib.counts.pictures === 1 ? "" : "s"}` : "No pictures yet") : "…"}</Status>
               <Button small icon="images" onClick={() => (location.hash = "#/library")}>
                 Open Library
               </Button>
             </div>
           </Row>
-          <Row label="Your own pictures" hint="Product packshots, offer photos, illustrations: PNG, WebP or JPEG. They stay with the project across updates.">
-            <span className="text-[13px] text-ink-2">Upload them in a project's Pictures tab, or pick a folder of pictures when you start a fresh edit. Each picture is cut out, prepared and tagged with the words that call it.</span>
+          <Row label="A project's own pictures" hint="Product packshots, offer photos, illustrations: PNG, WebP or JPEG. They stay with the project across updates.">
+            <span className="text-[13px] text-ink-2">Add them in a project's Pictures tab, or pick a folder of pictures when you start a fresh edit. Each picture is cut out, prepared and tagged with the words that call it.</span>
           </Row>
         </Section>
 

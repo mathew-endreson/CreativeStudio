@@ -3,7 +3,6 @@
 # python on PATH (for make_icon.py), internet for the runtime downloads. The customer's PC needs none of these.
 param(
   [switch]$SkipRuntime,
-  [string]$LibraryDir = "",  # the illustration library to ship (default: the GPT asset tool's folder, else assets-library/)
   [switch]$LocalTest,        # rehearsal build: lets an operator override endpoint use http://127.0.0.1 (never for customers)
   [string]$Tag = ""          # the GitHub release tag the update manifest should point at (default v<version>)
 )
@@ -43,10 +42,8 @@ try {
   if ($LASTEXITCODE -ne 0) { throw "UI build failed" }
 } finally { Pop-Location }
 
-$rt = @{}
-if ($LibraryDir) { $rt.LibraryDir = $LibraryDir }
-if (-not $SkipRuntime) { & (Join-Path $studio "installer\build_runtime.ps1") @rt }
-else { & (Join-Path $studio "installer\build_runtime.ps1") -SkipDownloads @rt }
+if (-not $SkipRuntime) { & (Join-Path $studio "installer\build_runtime.ps1") }
+else { & (Join-Path $studio "installer\build_runtime.ps1") -SkipDownloads }
 
 Push-Location -LiteralPath $desktop
 try {

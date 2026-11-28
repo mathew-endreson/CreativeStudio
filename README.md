@@ -141,9 +141,9 @@ and MSVC are preinstalled there; the runtime downloads are cached between runs).
 - **Actions → installer → Run workflow**: the installer is kept as a workflow artifact for 90 days.
 - **Push a tag** such as `v0.1.0`: the build runs and attaches the installer to a GitHub release of that tag.
 
-The repo must hold what the build PC otherwise provides: `assets-library/` (the illustration library, copied from
-the GPT asset tool's folder; refresh it when pictures are added), `installer/vcredist/` (the VC++ runtime DLLs),
-`desktop/supabase.config.json` and `desktop/license_public_key.pem` (public values). A CI build has no matte model,
+The repo must hold what the build PC otherwise provides: `installer/vcredist/` (the VC++ runtime DLLs),
+`desktop/supabase.config.json` and `desktop/license_public_key.pem` (public values). No picture library is shipped:
+each PC fills its own from the Library screen. A CI build has no matte model,
 so the installed app's Setup screen fetches it with its first cutout warm-up (170 MB) instead of shipping it. A run
 takes about 40 minutes, most of it the NSIS compression; the installer is about 530 MB.
 
@@ -206,7 +206,7 @@ the installed copy at it (Settings shows "rehearsal channel"). Delete that file 
 
 What the PC needs: Windows 10 or 11, 64-bit, about 6 GB free, internet for the first run, and 8 GB of RAM or more
 (the cutout holds about 1.5 GB). Nothing else: the installer carries Python, Node, HyperFrames, FFmpeg, the Visual
-C++ runtime, the skills, the illustration library and the license key.
+C++ runtime, the skills and the license key.
 
 1. Send `BluxTech Studio_0.1.0_x64-setup.exe` (about 530 MB). It is not code-signed yet, so Windows SmartScreen
    shows "Windows protected your PC" the first time: **More info → Run anyway**. (A code-signing certificate removes
@@ -215,18 +215,20 @@ C++ runtime, the skills, the illustration library and the license key.
 2. First start: sign up (the email carries a link, open it, then sign in) or sign in, then **Activate**. A new account
    gets a trial; sales grant the real license (Licensing above).
 3. The **Set up this PC** screen then lists what is missing and **Run setup** fetches it once: the Whisper model
-   (1.6 GB), the Chrome that HyperFrames renders with (270 MB) and the cutout runtime (210 MB). The matte model and
-   the illustration library ship with the installer and are laid into the workspace automatically.
+   (1.6 GB), the Chrome that HyperFrames renders with (270 MB) and the cutout runtime (210 MB). The matte model
+   ships with the installer and is laid into the workspace automatically.
+   The picture library starts empty: **Library → Add pictures** takes transparent PNG / WebP cut-outs (a picture
+   with a background is cut out on the way in), keeps them in `Documents\BluxTech Studio\assets\generated`, and
+   Claude writes each one's keywords on the next edit. Until then ads use only each project's own pictures.
 4. The editing steps run on Claude through an Anthropic API key: the Setup screen asks for it (or Settings → Claude
    later). The key is sealed to the Windows user with DPAPI. Without a key the app opens but no edit can start.
 5. Work lands in `Documents\BluxTech Studio` (projects, cutouts, renders; the finished ads in each project's own Ads
    folder); settings, license and the job log in `%LOCALAPPDATA%\com.bluxtech.studio\engine`. Uninstalling from
    Apps & Features leaves both in place.
 
-Known limits on a customer PC: no ChatGPT / Codex drawing tool, so the ads use the shipped library as it is (new
-pictures are not drawn; the drawing cap is forced to 0); the illustration library is the copy made at build time
-(`installer/build_runtime.ps1` takes it from the build PC's GPT asset folder), so rebuild the installer after adding
-pictures. Code signing: a certificate (an OV/EV certificate, or Azure Trusted Signing) and `bundle.windows.certificateThumbprint`
+Known limits on a customer PC: no ChatGPT / Codex drawing tool, so the ads use the library as the user filled it
+(missing pictures are not drawn; the drawing cap is forced to 0, and every idea with no picture is listed after a
+build). Code signing: a certificate (an OV/EV certificate, or Azure Trusted Signing) and `bundle.windows.certificateThumbprint`
 or `signCommand` in `tauri.conf.json` make the installer and the exe signed, which is what removes the SmartScreen
 screen for customers.
 

@@ -367,18 +367,12 @@ export type FreshProject = {
   assets_count?: number;
   assets_library?: PictureCounts | null;
 };
-export type LibraryAsset = {
-  id: string;
-  file: string;
-  look: string;
-  source: string;
-  subject: string;
-  prompt?: string;
-  label?: string;
-  motion?: string;
-  keywords?: { darija?: string[]; ar?: string[]; fr?: string[]; en?: string[] };
-};
-export type Library = { dir: string; updated: string | null; assets: LibraryAsset[]; exists: boolean };
+/** A picture of this PC's library: the same shape as a project's picture, plus what the GPT studio wrote about a
+ *  drawing (subject, look, label) when there is any. */
+export type LibraryAsset = Picture & { subject?: string; look?: string; label?: string };
+/** This PC's picture library: `studio` on the owner's PC (the GPT asset tool's folder), `own` everywhere else
+ *  (the app's folder in the workspace, filled from the Library screen). */
+export type Library = { dir: string; updated: string | null; assets: LibraryAsset[]; exists: boolean; studio: boolean; own: boolean; counts: PictureCounts };
 
 async function req<T>(url: string, init?: RequestInit): Promise<T> {
   const r = await fetch(url, init);
@@ -452,6 +446,9 @@ export const api = {
   freshDarija: (slug: string) => req<{ jobs: Job[] }>(`/api/fresh/${slug}/darija`, { method: "POST" }),
 
   library: () => req<Library>("/api/library"),
+  /** Pictures for this PC's library (prepared and indexed by a job), or `reindex` alone to index the folder again. */
+  addLibraryPictures: (body: { files?: NewPicture[]; reindex?: boolean }) => req<{ added: number; library: Library; jobs: Job[] }>("/api/library/pictures", json("POST", body)),
+  removeLibraryPicture: (id: string) => req<Library>(`/api/library/${q(id)}`, { method: "DELETE" }),
   librarySearch: (text: string) => req<{ q: string; output: string }>(`/api/library/search?q=${q(text)}`),
   gptStatus: () => req<Record<string, any>>("/api/library/gpt-status"),
 

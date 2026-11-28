@@ -154,9 +154,10 @@ to the GitHub release with the installer and its `.sig`.
   node\          portable Node.js 22            hyperframes\node_modules   HyperFrames 0.9.38
   ffmpeg\bin\    ffmpeg.exe, ffprobe.exe        models\                    u2net_human_seg.onnx (optional)
   engine\        bluxtech_engine + prompts      skill\bluxstudio-skill, skill\darijadz   the skills (copied into the workspace)
-  assets\        the illustration library (library.json, generated\, style\), copied into the workspace as
-                 <workspace>\assets on a PC without the GPT asset tool; the skill reads it through GPT_ASSETS_PROJECT
-                 and CAMEL_GPT_LIBRARY, which the engine sets for every child process
+  (no pictures)  since Nov 28 2026 no picture library ships: on a PC without the GPT asset tool the engine makes an
+                 empty <workspace>\assets\generated and the Library screen fills it (engine/bluxtech_engine/library.py:
+                 uploads are cut out, placed there and indexed with asset_lib.py); the skill reads the library through
+                 GPT_ASSETS_PROJECT and CAMEL_GPT_LIBRARY, which the engine sets for every child process
   ui\            the built UI                   supabase.config.json, license_public_key.pem
 ```
 

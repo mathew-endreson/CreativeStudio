@@ -94,7 +94,9 @@ def public(lib):
     for e in assets(lib):
         out.append({"id": e["id"], "file": e.get("file"), "source": e.get("source"), "motion": e.get("motion") or "",
                     "concept": e.get("concept") or "", "keywords": e.get("keywords") or {}, "tagged": tagged(e),
-                    "missing": bool(e.get("missing")), "problem": unusable(e)})
+                    "missing": bool(e.get("missing")), "problem": unusable(e),
+                    # what the GPT studio wrote about a drawing, when there is any
+                    "subject": e.get("subject") or "", "look": e.get("look") or "", "label": e.get("label") or ""})
     return out
 
 

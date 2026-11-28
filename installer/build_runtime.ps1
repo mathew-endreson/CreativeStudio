@@ -9,8 +9,6 @@ param(
   [string]$NodeVersion = "22.14.0",
   [string]$HyperframesVersion = "0.9.38",
   [string]$FfmpegUrl = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip",
-  # the illustration library to ship: the GPT asset tool's folder on the owner's PC, or assets-library/ in the repo (CI)
-  [string]$LibraryDir = (Join-Path $env:USERPROFILE "Documents\ChatGPT\asstets tool ebox"),
   [switch]$SkipDownloads
 )
 $ErrorActionPreference = "Stop"
@@ -158,21 +156,10 @@ if (Test-Path -LiteralPath $vc) {
   Write-Output "vc runtime: $((Get-ChildItem -LiteralPath $vc -Filter '*.dll').Count) DLLs beside python.exe"
 } else { Write-Warning "installer\vcredist is missing: the embedded runtime will need the VC++ 2022 redistributable on the customer's PC" }
 
-# ---- the illustration library (the GPT asset tool's folder on the build PC): library.json + the pictures + the style
-# references. The engine copies it into the workspace when the customer has no ChatGPT asset tool of their own.
-$libSrc = $LibraryDir
-if (-not (Test-Path -LiteralPath (Join-Path $libSrc "library.json")) -and (Test-Path -LiteralPath (Join-Path $studio "assets-library\library.json"))) {
-  $libSrc = Join-Path $studio "assets-library"           # no GPT asset tool on this machine: the copy in the repo
-}
+# ---- no picture library is shipped (since Nov 28 2026): each PC fills its own from the Library screen. A copy an
+# older staging left behind must not travel either.
 $lib = Join-Path $res "assets"
-if (Test-Path -LiteralPath (Join-Path $libSrc "library.json")) {
-  if (Test-Path -LiteralPath $lib) { Remove-Item -Recurse -Force -LiteralPath $lib }
-  New-Item -ItemType Directory -Force $lib | Out-Null
-  foreach ($name in @("library.json", "AGENTS.md")) { if (Test-Path -LiteralPath (Join-Path $libSrc $name)) { Copy-Item -LiteralPath (Join-Path $libSrc $name) $lib -Force } }
-  foreach ($name in @("generated", "style")) { if (Test-Path -LiteralPath (Join-Path $libSrc $name)) { Copy-Item -Recurse -LiteralPath (Join-Path $libSrc $name) (Join-Path $lib $name) } }
-  Get-ChildItem -LiteralPath $lib -Recurse -Directory | Where-Object { $_.Name -in @("_raw", ".gpt-assets", "__pycache__") } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-  Write-Output "illustration library: $((Get-ChildItem -LiteralPath (Join-Path $lib 'generated') -File -ErrorAction SilentlyContinue).Count) pictures"
-} else { Write-Warning "no illustration library at ${libSrc}: ads on the customer's PC get the jar and discs only" }
+if (Test-Path -LiteralPath $lib) { Remove-Item -Recurse -Force -LiteralPath $lib }
 
 $ui = Join-Path $res "ui"
 if (-not (Test-Path -LiteralPath (Join-Path $studio "desktop\dist\index.html"))) { throw "build the UI first: npm run build in desktop/" }
