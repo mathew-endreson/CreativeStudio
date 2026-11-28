@@ -155,6 +155,51 @@ Run the installer from Explorer or a normal terminal. A process started from ins
 package) gets that package's redirected AppData, so an install launched from there lands in
 `AppData\Local\Packages\Claude_…\LocalCache\Local\` and is invisible to the shortcuts it creates.
 
+## Updates
+
+Installed copies update themselves through the Tauri updater: at startup (if the customer leaves the automatic
+check on) and on **Settings → Updates → Check for updates**, the app reads the release channel's `latest.json`
+(the newest GitHub release of this repository), shows the version and notes, and only downloads after the customer
+says so. The download is verified against the public key built into the app (`plugins.updater.pubkey` in
+`desktop/src-tauri/tauri.conf.json`), the engine is stopped, the installer runs passively and the app reopens.
+A running task is never cut short: with tasks in flight the app offers to install when they finish. Projects,
+pictures, settings, the API key and the license live outside the install folder and survive every update. A run
+against a developer's engine (`BLUXTECH_ENGINE_URL`) never updates; `BLUXTECH_UPDATES=off` switches it off anywhere.
+
+**Signing key (once).** `npm run tauri signer generate -- -w ~\.tauri\bluxtech-studio.key -p <password>` in
+`desktop/` (or any password manager-worthy place outside the repository; `--ci` skips the prompts). Keep the key
+and its password: without them no further update can be signed, and customers would be stuck on the last version.
+The public key goes into `tauri.conf.json`; the private key is never committed (`~\.tauri\` is outside the repo,
+and `installer\build.ps1` reads it from there for local builds).
+
+**GitHub secrets (once).** Settings → Secrets and variables → Actions → New repository secret:
+
+| secret | value |
+|---|---|
+| `TAURI_SIGNING_PRIVATE_KEY` | the full content of `~\.tauri\bluxtech-studio.key` |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | the password given at generation |
+
+**Releasing a version.** `.\installer\bump_version.ps1 0.1.1` sets the version in `desktop/src-tauri/tauri.conf.json`,
+`desktop/src-tauri/Cargo.toml` and `desktop/package.json` (all three must agree: the workflow refuses a tag that
+does not match). Write the customer notes in `installer/RELEASE_NOTES.md`, commit, push to `main`, then tag and
+push the tag:
+
+```
+git tag -a v0.1.1 -m "BluxTech Studio 0.1.1"
+git push origin v0.1.1
+```
+
+The workflow builds the signed installer, `*.sig` and `latest.json` and attaches them to the GitHub release of that
+tag. A tag with a hyphen (`v0.1.1-rc1`) makes a pre-release, which the release channel never serves: use it to
+rehearse. Existing installations then find the new version at their next check.
+
+**Rehearsing an update without publishing.** `installer\build.ps1 -LocalTest` builds with the overlay
+`desktop/src-tauri/tauri.localtest.conf.json`, which lets an operator override endpoint use `http://127.0.0.1`
+(signatures are still verified; production builds refuse plain http). Then `installer\make_update_manifest.ps1
+-BaseUrl http://127.0.0.1:8777` writes a manifest for a local server, and the file
+`%LOCALAPPDATA%\com.bluxtech.studio\updater.json` with `{"endpoint": "http://127.0.0.1:8777/latest.json"}` points
+the installed copy at it (Settings shows "rehearsal channel"). Delete that file afterwards.
+
 ## Install on another PC (customers)
 
 What the PC needs: Windows 10 or 11, 64-bit, about 6 GB free, internet for the first run, and 8 GB of RAM or more

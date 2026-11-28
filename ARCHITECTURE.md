@@ -108,8 +108,30 @@ folder indexed, keywords, `plan --lib`, `place --lib`, the render) → the ad in
   makes the engine verify the function's RS256 token, so a hand-written license file does not unlock it. All desktop
   licensing is ultimately client-side; the function is the authority for device counts and expiry.
 - The Anthropic API key is sealed with DPAPI for the Windows user (never returned by the API, never logged).
+- The account's Supabase session is kept the same way (`/api/auth/session`, a custom storage for the auth client in
+  `desktop/src/auth.ts`) rather than in the WebView's localStorage: the engine's port, and so the page's origin,
+  changes at every launch, and localStorage would ask the customer to sign in each time.
 - Claude runs with a fixed tool list and without permission prompts; the system prompt forbids deleting footage,
   projects, finished ads or the GPT library (the skill's guardrails).
+
+## Updates
+
+The shell carries the Tauri updater plugin and drives it through three commands (`update_status`, `update_check`,
+`update_install` in `desktop/src-tauri/src/lib.rs`) rather than the plugin's JavaScript API, so that policy and
+sequencing stay in Rust: a run against a developer's engine never updates, `BLUXTECH_UPDATES=off` switches it off,
+`<app local data>\updater.json` lets an operator point a copy at another manifest (a rehearsal), and the
+`on_before_exit` hook stops the engine before the installer replaces files (the plugin ends the process right after
+launching the installer, so the normal exit path never runs). The engine also watches its parent process
+(`BLUXTECH_PARENT_PID`) and exits with it, and the NSIS hooks stop anything still running from the install folder.
+The UI (`desktop/src/Updates.tsx`, `updater.ts`) asks before downloading, shows progress from the `update-progress`
+event, waits for running tasks when the customer agrees, and shows errors in the customer's words with a retry;
+`App.tsx` runs the startup check in the background and shows a one-line banner. Because the window's page comes from
+the engine (`http://127.0.0.1:<port>`), Tauri's ACL treats it as a remote origin and checks even the app's own
+commands against it: `build.rs` declares the three commands (`AppManifest::commands`), which generates
+`allow-update-*` permissions, and `capabilities/main.json` grants them to that origin. Signing: `bundle.createUpdaterArtifacts`
+makes the NSIS installer the update artifact and signs it (minisign) with the key `installer/build.ps1` finds in
+`~\.tauri\` or in CI secrets; `installer/make_update_manifest.ps1` writes `latest.json`, which the workflow attaches
+to the GitHub release with the installer and its `.sig`.
 
 ## Installed layout (what `installer/build_runtime.ps1` stages)
 

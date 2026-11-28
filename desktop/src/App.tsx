@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Activate from "./Activate";
 import { api, errText, type AppInfo, type FreshProject, type Job, type LicenseState, type ProductCard } from "./api";
 import { useUser } from "./auth";
+import { startupCheck, type UpdateCheck } from "./updater";
 import Fresh from "./Fresh";
 import { BrandMark, Icon, type IconName } from "./icons";
 import { isActive, JobsPanel, TasksButton, useJobs, useOnJobEnd } from "./Jobs";
@@ -177,7 +178,7 @@ function Sidebar({ parts, jobs }: { parts: string[]; jobs: Job[] }) {
 
 const themeIcon: Record<Theme, IconName> = { dark: "moon", light: "sun", auto: "auto" };
 
-function Shell({ info, children, openPanel, jobs, theme, cycle }: { info: AppInfo; children: ReactNode; openPanel: () => void; jobs: Job[]; theme: Theme; cycle: () => void }) {
+function Shell({ info, children, openPanel, jobs, theme, cycle, update }: { info: AppInfo; children: ReactNode; openPanel: () => void; jobs: Job[]; theme: Theme; cycle: () => void; update?: UpdateCheck | null }) {
   const parts = useHash().split("/").filter(Boolean);
   const [side, setSide] = useState(() => store.get("sidebar") !== "0");
   const toggleSide = useCallback(() => setSide((s) => (store.set("sidebar", s ? "0" : "1"), !s)), []);
@@ -219,7 +220,17 @@ function Shell({ info, children, openPanel, jobs, theme, cycle }: { info: AppInf
       </header>
       <div className="flex min-h-0 flex-1 gap-[6px] p-[6px]">
         {side && <Sidebar parts={parts} jobs={jobs} />}
-        <main className="min-w-0 flex-1 overflow-auto rounded-[12px] px-4 py-3">{children}</main>
+        <main className="min-w-0 flex-1 overflow-auto rounded-[12px] px-4 py-3">
+          {update?.available && parts[0] !== "settings" && (
+            <a href="#/settings" className="glass-2 mb-3 flex items-center gap-2 rounded-[9px] px-3 py-1.5 text-[12.5px] text-ink-2 hover:text-ink">
+              <Icon name="sparkles" size={14} className="shrink-0 text-accent" />
+              <span>
+                BluxTech Studio {update.version} is available. <span className="font-medium text-accent">Open Updates</span>
+              </span>
+            </a>
+          )}
+          {children}
+        </main>
       </div>
       {/* the page bar: Resolve's row of pages along the bottom, the active one lit amber */}
       <footer className="glass-bar relative z-10 flex h-[54px] shrink-0 items-center border-t border-line px-3">
@@ -277,6 +288,17 @@ export default function App() {
     reloadApp();
   }, [reloadApp]);
   const user = useUser(info?.auth ?? null);
+  // the startup update check: once per app version, in the background, never blocking or downloading
+  const [update, setUpdate] = useState<UpdateCheck | null>(null);
+  const version = info?.version;
+  useEffect(() => {
+    if (!version) return;
+    let live = true;
+    startupCheck().then((u) => live && setUpdate(u));
+    return () => {
+      live = false;
+    };
+  }, [version]);
   const openJob = useCallback((id: number) => {
     setFocus(id);
     setPanel(true);
@@ -340,11 +362,11 @@ export default function App() {
   else if (parts[0] === "new") page = <NewProduct openJob={openJob} />;
   else if (parts[0] === "fresh") page = <Fresh slug={parts[1]} openJob={openJob} />;
   else if (parts[0] === "library") page = <Library />;
-  else if (parts[0] === "settings") page = <Settings info={info} reloadApp={reloadApp} />;
+  else if (parts[0] === "settings") page = <Settings info={info} reloadApp={reloadApp} update={update} />;
   else page = <Products />;
 
   return (
-    <Shell info={info} openPanel={openPanel} jobs={jobs} theme={theme} cycle={cycle}>
+    <Shell info={info} openPanel={openPanel} jobs={jobs} theme={theme} cycle={cycle} update={update}>
       {info.runner === "sdk" && !info.license.licensing && (
         <div className="mb-2 inline-flex items-center gap-1.5 rounded-[5px] bg-warn/10 px-2 py-0.5 text-[11.5px] text-warn">
           <Icon name="alert" size={12} /> Licensing is off (no supabase.config.json): dev mode.

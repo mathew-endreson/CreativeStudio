@@ -229,6 +229,7 @@ export type Settings = {
   limits: { heavy: number; claude: number; light: number };
   gpt_cap: number;
   auto_render: boolean;
+  auto_update_check: boolean;
   has_api_key: boolean;
   api_key_source: "settings" | "env" | null;
 };
@@ -405,6 +406,9 @@ export const api = {
   settings: () => req<Settings>("/api/settings"),
   saveSettings: (patch: Partial<Omit<Settings, "has_api_key" | "api_key_source">>) => req<Settings>("/api/settings", json("PUT", patch)),
   setApiKey: (key: string) => req<Settings>("/api/settings/apikey", json("POST", { key })),
+  /** The account's sign-in session, kept by the engine so it outlives the app's restarts (see auth.ts). */
+  authSession: () => req<{ value: string | null }>("/api/auth/session").then((r) => r.value),
+  saveAuthSession: (value: string | null) => req<{ ok: boolean }>("/api/auth/session", json("PUT", { value })),
   environment: () => req<EnvCheck>("/api/environment"),
   setup: () => req<{ jobs: Job[] }>("/api/environment/setup", { method: "POST" }),
   folder: (path: string) => req<Folder>(`/api/folder?path=${q(path)}`),

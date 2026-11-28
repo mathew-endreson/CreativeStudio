@@ -9,10 +9,31 @@ export type { User };
 
 let sb: SupabaseClient | null = null;
 
+/** Where the session is kept: the engine (encrypted at rest, like the API key), not the browser's storage. The
+ *  engine listens on a new port at every launch, so the UI's origin, and with it localStorage, changes each time;
+ *  kept there, the sign-in lasted one run. Cached in memory so the auth client's frequent reads cost nothing. */
+const engineStorage = (() => {
+  let cache: string | null | undefined; // undefined = not loaded yet
+  return {
+    getItem: async (_key: string) => {
+      if (cache === undefined) cache = (await api.authSession().catch(() => null)) ?? null;
+      return cache;
+    },
+    setItem: async (_key: string, value: string) => {
+      cache = value;
+      await api.saveAuthSession(value).catch(() => {});
+    },
+    removeItem: async (_key: string) => {
+      cache = null;
+      await api.saveAuthSession(null).catch(() => {});
+    },
+  };
+})();
+
 export function initAuth(cfg: AuthCfg): SupabaseClient {
   if (!sb) {
     sb = createClient(cfg.url, cfg.publishableKey, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: "bluxtech-auth" },
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: "bluxtech-auth", storage: engineStorage },
     });
   }
   return sb;

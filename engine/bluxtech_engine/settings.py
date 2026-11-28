@@ -22,6 +22,7 @@ DEFAULTS = {
     "limits": {"heavy": 1, "claude": 2, "light": 3},
     "gpt_cap": 3,
     "auto_render": False,
+    "auto_update_check": True,      # the desktop app looks for a new version at startup (it never downloads by itself)
 }
 HIDDEN = ("license", "device_id")
 

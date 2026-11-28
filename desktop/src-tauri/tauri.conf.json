@@ -14,8 +14,18 @@
       "capabilities": ["main"]
     }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEYyMUFBMjFCQkUxQzUzNjkKUldScFV4eStHNklhOGtXcWZwcnpmYzZFcWxuaWxvQXdIc0tIYjE3VDIzZDI0Vnh2SzY2N3VxU3IK",
+      "endpoints": ["https://github.com/mathew-endreson/CreativeStudio/releases/latest/download/latest.json"],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": ["nsis"],
     "publisher": "BluxTech",
     "category": "Video",

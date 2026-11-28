@@ -18,6 +18,27 @@ def free_port():
         return s.getsockname()[1]
 
 
+def watch_parent(pid):
+    """Exit with the desktop shell that started us. The shell stops the engine itself on a normal quit; this covers
+    the updater (which ends the shell's process without that step) and a crash, so no engine of ours ever outlives
+    the app and keeps files open while an installer replaces them."""
+    import os
+    import threading
+    if os.name != "nt":
+        return
+    import ctypes
+    k32 = ctypes.windll.kernel32
+    handle = k32.OpenProcess(0x00100000, False, int(pid))              # SYNCHRONIZE
+    if not handle:
+        return
+
+    def wait():
+        k32.WaitForSingleObject(handle, 0xFFFFFFFF)                       # INFINITE: returns when the parent ends
+        os._exit(0)
+
+    threading.Thread(target=wait, name="parent-watchdog", daemon=True).start()
+
+
 def main():
     ap = argparse.ArgumentParser(prog="bluxtech_engine", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -29,6 +50,9 @@ def main():
     ap.add_argument("--open", action="store_true", help="open the UI in the default browser")
     a = ap.parse_args()
 
+    import os
+    if os.environ.get("BLUXTECH_PARENT_PID", "").isdigit():
+        watch_parent(os.environ["BLUXTECH_PARENT_PID"])
     from . import config
     config.init(workspace=a.workspace, resources=a.resources, port=a.port, auth=not a.no_auth, data=a.data)
     from . import environment

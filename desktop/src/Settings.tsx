@@ -4,6 +4,8 @@ import { authError, deactivate, signOut } from "./auth";
 import { useDevMode } from "./devmode";
 import Setup from "./Setup";
 import { Button, Card, Chip, cx, ErrorNote, field, PageHeader } from "./ui";
+import Updates from "./Updates";
+import type { UpdateCheck } from "./updater";
 
 /** One section of the Settings page: a glass pane with a small caption. */
 function Section({ title, sub, children }: { title: string; sub?: string; children: ReactNode }) {
@@ -46,7 +48,7 @@ const EFFORTS = [
   { id: "max", label: "Maximum — slowest, costs the most" },
 ];
 
-export default function Settings({ info, reloadApp }: { info: AppInfo; reloadApp: () => void }) {
+export default function Settings({ info, reloadApp, update }: { info: AppInfo; reloadApp: () => void; update?: UpdateCheck | null }) {
   const [s, setS] = useState<SettingsT | null>(null);
   const [env, setEnv] = useState<EnvCheck | null>(null);
   const [lib, setLib] = useState<Library | null>(null);
@@ -238,6 +240,11 @@ export default function Settings({ info, reloadApp }: { info: AppInfo; reloadApp
             </Button>
           </div>
         </Row>
+      </Section>
+
+      {/* Updates */}
+      <Section title="Updates" sub="New versions come from the release channel. The app only checks; you decide when to download and install, and a running task is never cut short.">
+        <Updates version={info.version} settings={s} save={save} initial={update} />
       </Section>
 
       {/* 7. Application */}

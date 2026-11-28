@@ -130,7 +130,8 @@ def put_settings(body: dict = Body(...)):
                "max_budget_usd": lambda v: isinstance(v, (int, float)) and 0.5 <= v <= 50,
                "max_turns": lambda v: isinstance(v, int) and 10 <= v <= 500,
                "limits": lambda v: isinstance(v, dict) and all(k in ("heavy", "claude", "light") and isinstance(x, int) and 1 <= x <= 4 for k, x in v.items()),
-               "gpt_cap": lambda v: isinstance(v, int) and 0 <= v <= 10, "auto_render": lambda v: isinstance(v, bool)}
+               "gpt_cap": lambda v: isinstance(v, int) and 0 <= v <= 10, "auto_render": lambda v: isinstance(v, bool),
+               "auto_update_check": lambda v: isinstance(v, bool)}
     for k, v in body.items():
         if k not in allowed:
             raise HTTPException(400, f"unknown setting {k}")
@@ -147,6 +148,23 @@ def put_api_key(body: dict = Body(...)):
         raise HTTPException(422, "an Anthropic API key starts with sk-ant-")
     settings.set_secret("anthropic_api_key", key)
     return settings.public()
+
+
+@app.get("/api/auth/session")
+def get_auth_session():
+    """The signed-in account's session, kept by the engine (encrypted at rest, like the API key) so it survives
+    the app's restarts: the UI's origin changes with the engine's port at every launch, so the browser's own
+    storage would forget the sign-in each time."""
+    return {"value": settings.get_secret("auth_session")}
+
+
+@app.put("/api/auth/session")
+def put_auth_session(body: dict = Body(...)):
+    value = body.get("value")
+    if value is not None and (not isinstance(value, str) or len(value) > 64 * 1024):
+        raise HTTPException(422, "bad session")
+    settings.set_secret("auth_session", value or "")
+    return {"ok": True}
 
 
 @app.get("/api/environment")
