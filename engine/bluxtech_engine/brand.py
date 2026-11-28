@@ -4,7 +4,8 @@ Each PC chooses its own (Settings → Brand): a preset or its own colours, a nam
 the library folder as `brand.json` (so the skill's scripts see it beside the pictures) and mirrored in the engine's
 settings so a re-created library folder gets it back. The skill's `brand_guide.py` renders from it what keeps GPT on
 style: AGENTS.md, the style guide, the four reference pictures re-coloured, and the palette lock's ramp. On the
-owner's PC the library is the GPT asset studio's own folder, which keeps its own files: the brand is read-only there."""
+owner's PC the library is the GPT asset studio's own folder: its original files are kept aside (style/.house) the
+first time a brand is saved, and choosing the house orange again puts them back byte for byte."""
 import io
 import sys
 import time
@@ -24,9 +25,14 @@ def folder():
     return config.GPT_DIR
 
 
+def studio():
+    """True on the owner's PC, where the library is the GPT asset studio's own folder (its originals are kept)."""
+    return config.GPT_DIR == config.GPT_TOOL_DIR
+
+
 def managed():
-    """True when the brand may be changed here: the library is the app's own folder, not the GPT asset studio."""
-    return config.GPT_DIR != config.GPT_TOOL_DIR
+    """The brand can be changed on every PC (kept for the UI's `managed` field)."""
+    return True
 
 
 def current():
@@ -35,8 +41,9 @@ def current():
 
 def info():
     b = current()
-    return {"managed": managed(), "dir": str(folder()), "brand": b, "house": BG.is_house(b), "presets": BG.PRESETS,
-            "roles": BG.roles(b), "words": BG.words(b), "applied": (folder() / "style" / ".brand-stamp").is_file(),
+    return {"managed": managed(), "studio": studio(), "dir": str(folder()), "brand": b, "house": BG.is_house(b),
+            "presets": BG.PRESETS, "roles": BG.roles(b), "words": BG.words(b),
+            "applied": (folder() / "style" / ".brand-stamp").is_file(), "house_kept": (folder() / BG.HOUSE_DIR).is_dir(),
             "guide": str(folder() / "style" / "style-identity-guide.md")}
 
 
@@ -48,11 +55,15 @@ def derive(primary, accent=None):
 
 
 def save(data):
-    if not managed():
-        raise PermissionError("this PC draws in the GPT asset studio's own style; the brand applies to the app's own library")
+    """A brand: brand.json + the rendered files (the folder's own files kept aside first). The house orange: the kept
+    files come back and the brand files go, so the folder is as it was before any brand."""
     b = BG.normalize(data)
-    b["updated"] = time.strftime("%Y-%m-%dT%H:%M:%S")
     folder().mkdir(parents=True, exist_ok=True)
+    if BG.is_house(b):
+        BG.restore_house(folder())
+        settings.delete("brand")
+        return info()
+    b["updated"] = time.strftime("%Y-%m-%dT%H:%M:%S")
     jdump(folder() / "brand.json", b)
     settings.set("brand", b)
     BG.apply(folder(), b, force=True)
@@ -61,14 +72,12 @@ def save(data):
 
 def restore():
     """At start: a library folder without its brand.json gets the one the settings remember, and a brand.json whose
-    files are stale (new app version, edited by hand) is rendered again. Never touches the GPT asset studio."""
-    if not managed():
-        return
+    files are stale (new app version, edited by hand) is rendered again."""
     f = folder() / "brand.json"
     try:
         if not f.is_file():
             remembered = settings.get("brand")
-            if not remembered:
+            if not remembered or BG.is_house(BG.normalize(remembered)):
                 return
             folder().mkdir(parents=True, exist_ok=True)
             jdump(f, BG.normalize(remembered))

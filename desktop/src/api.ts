@@ -379,9 +379,9 @@ export type Brand = { name: string; preset: string; primary: string; accent: str
 export type BrandPreset = { id: string; name: string; primary: string; accent: string };
 export type BrandRoles = { deep: string[]; shadow: string[]; shade: string[]; main: string; lit: string[]; gloss: string[]; highlight: string[]; flatdeep: string; dark_end: string; light_end: string };
 export type BrandWords = { hue: string; deep_word: string; dark_word: string; pale_word: string; line_word: string; pale_tint: string; streak: string };
-/** `managed` = the library is the app's own folder, so the brand can be changed here (on the owner's PC the GPT
- *  asset studio keeps its own style and the brand is read-only). */
-export type BrandInfo = { managed: boolean; dir: string; brand: Brand; house: boolean; presets: BrandPreset[]; roles: BrandRoles; words: BrandWords; applied: boolean; guide: string };
+/** `studio` = the library is the owner's GPT asset studio folder: its own files are kept aside (`house_kept`) the
+ *  first time a brand is saved and come back with the house orange. */
+export type BrandInfo = { managed: boolean; studio: boolean; dir: string; brand: Brand; house: boolean; presets: BrandPreset[]; roles: BrandRoles; words: BrandWords; applied: boolean; house_kept: boolean; guide: string };
 export type BrandDerived = { brand: Brand; roles: BrandRoles; words: BrandWords; target_hue: number | null; hue_band: [number, number] | null };
 
 async function req<T>(url: string, init?: RequestInit): Promise<T> {

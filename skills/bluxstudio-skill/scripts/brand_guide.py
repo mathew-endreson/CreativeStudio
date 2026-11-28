@@ -13,10 +13,14 @@ studio folder):
     style/refs/<look>-*.png          the four reference pictures recoloured onto the brand's ramp
     style/brand-ramp.json            the luminance ramp + hue band for finish_asset's palette lock
     style/.brand-stamp               what was rendered (apply() is a no-op until brand.json changes)
+    style/.house/                    the folder's own AGENTS.md, guide and refs, kept aside once before the first
+                                     render (the GPT asset studio's originals on the owner's PC); `house` puts them
+                                     back byte for byte and removes the brand files
 and `palette(folder)` gives asset_lib.concept_prompt the colour words and hexes for its prompt templates. Without a
 brand.json nothing changes: the house orange, word for word.
 
     python brand_guide.py apply <folder> [--force]
+    python brand_guide.py house <folder>
     python brand_guide.py show <folder>
     python brand_guide.py derive --primary "#1F6FEB" [--accent "#0B2A5B"]
     python brand_guide.py preview --primary "#1F6FEB" [--accent ...] --look flat --out blue.png [--size 360]
@@ -41,6 +45,8 @@ SKILL_DIR = Path(__file__).resolve().parent.parent
 GUIDE_TEMPLATE = SKILL_DIR / "references" / "style-identity-guide.md"
 REFS_DIR = SKILL_DIR / "assets" / "refs"
 REF_LOOKS = {"flat": "flat-person-coughing", "glossy": "glossy-lungs"}          # the preview picture per look
+HOUSE_DIR = "style/.house"                 # the folder's own files, kept aside before the first brand (restore_house)
+HOUSE_FILES = ("AGENTS.md", "style/style-identity-guide.md")
 
 HOUSE = {"name": "House orange", "preset": "orange", "primary": "#FB7201", "accent": "#632302", "hue": "orange", "notes": ""}
 PRESETS = [
@@ -397,6 +403,52 @@ def stamp(b: dict) -> str:
     return hashlib.sha1(f"{VERSION}|{tpl}|{key}".encode("utf-8")).hexdigest()
 
 
+def backup_house(folder) -> bool:
+    """Keep the folder's own AGENTS.md, guide and reference pictures aside before the first brand render (once; on
+    the owner's PC these are the GPT asset studio's originals). Returns True when the copy was made now."""
+    folder = Path(folder)
+    dst = folder / HOUSE_DIR
+    if dst.exists():
+        return False
+    found = [folder / f for f in HOUSE_FILES if (folder / f).is_file()] + sorted((folder / "style" / "refs").glob("*.png"))
+    if not found:
+        return False
+    for src in found:
+        out = dst / src.relative_to(folder)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, out)
+    return True
+
+
+def restore_house(folder) -> bool:
+    """Back to the folder's own style: the files backup_house kept come back byte for byte, brand files the folder
+    did not have before go (gpt_assets.ensure_gpt_project lays the house defaults down again when needed), and
+    brand.json, the ramp and the stamp are removed. Returns True when a kept copy was restored."""
+    folder = Path(folder)
+    kept = folder / HOUSE_DIR
+    had = set()
+    if kept.is_dir():
+        for p in kept.rglob("*"):
+            if p.is_file():
+                rel = p.relative_to(kept)
+                out = folder / rel
+                out.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(p, out)
+                had.add(rel.as_posix())
+    for f in list(HOUSE_FILES) + [f"style/refs/{p.stem}.png" for p in REFS_DIR.glob("*.webp")]:
+        if f not in had:
+            try:
+                (folder / f).unlink()
+            except FileNotFoundError:
+                pass
+    for name in ("brand.json", "style/brand-ramp.json", "style/.brand-stamp"):
+        try:
+            (folder / name).unlink()
+        except FileNotFoundError:
+            pass
+    return bool(had)
+
+
 def apply(folder, brand: dict | None = None, force: bool = False) -> bool:
     """Render the brand's files into the library folder. Returns True when something was (re)written."""
     folder = Path(folder)
@@ -408,6 +460,7 @@ def apply(folder, brand: dict | None = None, force: bool = False) -> bool:
     want = stamp(b)
     if not force and mark.is_file() and mark.read_text(encoding="utf-8").strip() == want:
         return False
+    backup_house(folder)
     (style / "refs").mkdir(parents=True, exist_ok=True)
     (folder / "generated").mkdir(exist_ok=True)
     (style / "style-identity-guide.md").write_text(render_guide(b), encoding="utf-8")
@@ -438,6 +491,8 @@ def main() -> None:
     a1.add_argument("--force", action="store_true")
     a2 = sub.add_parser("show", help="the brand of a folder and its palette")
     a2.add_argument("folder")
+    a5 = sub.add_parser("house", help="back to the folder's own style: restore what the first brand render kept aside")
+    a5.add_argument("folder")
     a3 = sub.add_parser("derive", help="the palette for colours (no folder)")
     a3.add_argument("--primary", required=True)
     a3.add_argument("--accent")
@@ -460,6 +515,9 @@ def main() -> None:
     elif a.cmd == "show":
         b = normalize(load(a.folder))
         print(json.dumps({"brand": b, "house": is_house(b), "roles": roles(b), "palette": palette(a.folder)}, indent=1))
+    elif a.cmd == "house":
+        kept = restore_house(a.folder)
+        print(("restored the folder's own files" if kept else "no kept copy: brand files removed, house defaults return on the next draw") + f" in {a.folder}")
     elif a.cmd == "derive":
         b = normalize({"primary": a.primary, "accent": a.accent, "name": a.name})
         t, band = hue_info(b)

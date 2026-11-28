@@ -223,7 +223,9 @@ C++ runtime, the skills and the license key.
    **Settings → Brand** picks the colours GPT draws new pictures in on this PC: a preset or your own main and
    line colours, a name and notes. The drawing rules, the reference pictures and the colour lock are rendered
    from it into the library folder (`brand.json` beside the pictures; the app remembers it if the folder is
-   recreated). Each PC has its own brand; the owner's GPT asset studio folder keeps its orange.
+   recreated). Each PC has its own brand. On the owner's PC, where the library is the GPT asset studio's folder, its
+   own rules, guide and reference pictures are kept aside (`style\.house`) the first time a brand is saved and come
+   back, unchanged, with "Back to House orange".
 4. The editing steps run on Claude through an Anthropic API key: the Setup screen asks for it (or Settings → Claude
    later). The key is sealed to the Windows user with DPAPI. Without a key the app opens but no edit can start.
 5. Work lands in `Documents\BluxTech Studio` (projects, cutouts, renders; the finished ads in each project's own Ads

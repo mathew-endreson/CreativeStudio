@@ -113,7 +113,7 @@ export default function BrandEditor() {
 
   if (!info.managed) {
     return (
-      <BRow label="Drawing colours" hint="This PC draws in the GPT asset studio's own style. The brand guide is for the app's own library on a customer's PC.">
+      <BRow label="Drawing colours" hint="The brand cannot be changed on this library.">
         <div className="flex items-center gap-2 text-[13px]">
           <BrandDot primary={info.brand.primary} accent={info.brand.accent} />
           <span>{info.brand.name}</span>
@@ -123,6 +123,7 @@ export default function BrandEditor() {
     );
   }
 
+  const house = info.presets[0];
   const dirty = !sameBrand(draft, info.brand);
   const isPresetName = (n: string) => !n.trim() || info.presets.some((p) => p.name === n);
   const pick = (p: BrandPreset) => setDraft({ ...draft, preset: p.id, primary: p.primary, accent: p.accent, hue: "", name: isPresetName(draft.name) ? p.name : draft.name });
@@ -144,7 +145,6 @@ export default function BrandEditor() {
       .catch((e) => setErr(errText(e)))
       .finally(() => setBusy(false));
   };
-  const house = info.presets[0];
   const previewKey = `${draft.primary}|${draft.accent}`;
 
   return (
@@ -153,6 +153,14 @@ export default function BrandEditor() {
         <div className="px-3 pt-2">
           <ErrorNote>{err}</ErrorNote>
         </div>
+      )}
+      {info.studio && (
+        <BRow label="This PC" hint="This library is your GPT asset studio folder.">
+          <div className="text-[12.5px] leading-snug text-ink-2">
+            Its own drawing rules, style guide and reference pictures are kept aside the first time a brand is saved
+            {info.house_kept ? " (they are kept now)" : ""} and come back, unchanged, with “Back to {house.name}”. The pictures and their keywords are never touched.
+          </div>
+        </BRow>
       )}
       <BRow label="Preset" hint="A starting point. Your own colours below override it.">
         <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Brand presets">
