@@ -184,9 +184,11 @@ You write the judgment into `analysis.json` (hook end, body start, CTA start per
 
 The pictures normally come from the user. When they ask GPT to draw one (a MISSING concept, or "make me a liver
 picture"), the user's ChatGPT/Codex desktop app draws it in the house monochrome-orange illustration style
-(glossy gel organs, flat silhouettes facing right) in `C:\Users\EL ASSLI\Documents\ChatGPT\asstets tool ebox`. No API key: `scripts/gpt_assets.py` drives the app's `codex exec` with its built-in `image_gen`.
+(glossy gel organs, flat silhouettes facing right; a customer's own brand colours when the folder carries a
+`brand.json`, see Brand below) in `C:\Users\EL ASSLI\Documents\ChatGPT\asstets tool ebox`. No API key: `scripts/gpt_assets.py` drives the app's `codex exec` with its built-in `image_gen`.
 
 - **Folder**: `AGENTS.md` and `style/` (guide + `refs/`) keep GPT on style; `generated/` holds GPT's PNGs; `.gpt-assets/` the request logs; `library.json` its keyword index (the default library when no `--lib` is given). The 9owa `orange-health-assets` tool shares this folder: never delete or rename what's in it.
+- **Brand**: a library folder with a `brand.json` (CreativeStudio's Library on a customer PC, Settings → Brand) is drawn in that brand instead of orange. `scripts/brand_guide.py apply <folder>` renders its `AGENTS.md`, `style/style-identity-guide.md`, re-coloured `style/refs/` and `style/brand-ramp.json` (the palette lock's ramp); `gpt_assets.py` applies it before every drawing and `asset_lib.py` (`fill` prompts, `place` palette lock) follows it by itself. Write prompts from THAT folder's guide then, never from `references/`. The owner's GPT asset studio folder has no `brand.json` and stays orange, word for word.
 - **Draw what's missing**: `python $S/asset_lib.py fill <plan.json> --max 3` (prompts from `assets/concepts.json`, ≤ 3 in parallel, 1–4 min each, uses the user's ChatGPT image allowance), then plan against the GPT library (no `--lib`) or copy the PNG into the upload folder and `index` it. Look at each new picture before using it.
 - **One picture**: `python $S/gpt_assets.py generate --name <look>-<subject> --look glossy|flat --prompt-file p.txt` (or `--subject "..."`); prompts from `references/style-identity-guide.md` §10.
 - **Connection**: `python $S/gpt_assets.py status`. If GPT fails (logged out, allowance used up, Codex app moved): quote the error, carry on without that picture, tell the user. Never fall back to an API key.

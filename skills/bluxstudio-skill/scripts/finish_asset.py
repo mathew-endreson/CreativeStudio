@@ -21,6 +21,7 @@ Usage
 Needs: numpy, pillow, scipy (rembg only for --method rembg).
 """
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -111,6 +112,29 @@ def remove_background_rembg(img):
 
 TARGET_HUE = 26.0  # median hue of the references, degrees
 HUE_BAND = (14.0, 38.0)
+_BRAND = {"key": None, "name": None}
+
+
+def use_ramp(stops, target_hue=None, hue_band=None):
+    """Lock onto another ramp (a brand's, from brand_guide.py). target_hue None = a neutral brand: no hue shift."""
+    global RAMP, TARGET_HUE, HUE_BAND
+    RAMP = [(int(k), tuple(int(c) for c in rgb)) for k, rgb in stops]
+    TARGET_HUE = None if target_hue is None else float(target_hue)
+    HUE_BAND = tuple(float(x) for x in hue_band) if hue_band else None
+
+
+def load_brand(project):
+    """Use the ramp of the brand drawn in `project` (style/brand-ramp.json, written by brand_guide.apply); without
+    one the house orange stays. Returns the brand's name, or None."""
+    p = Path(project) / "style" / "brand-ramp.json"
+    if not p.is_file():
+        return None
+    key = (str(p), p.stat().st_mtime_ns)
+    if _BRAND["key"] != key:
+        data = json.loads(p.read_text(encoding="utf-8-sig"))
+        use_ramp(data["ramp"], data.get("target_hue"), data.get("hue_band"))
+        _BRAND.update(key=key, name=(data.get("brand") or {}).get("name"))
+    return _BRAND["name"]
 
 
 def rgb_to_hsv(rgb):
@@ -138,6 +162,8 @@ def normalize_hue(rgb, alpha):
     """Rotate hues so the subject's median hue matches the references, then
     clamp into the orange band. Keeps saturation and value, so a red-drifted
     render becomes orange without getting darker."""
+    if TARGET_HUE is None or HUE_BAND is None:          # a neutral brand: luminance only
+        return rgb
     h, s, v = rgb_to_hsv(rgb)
     chroma = (alpha > 0.5) & (s > 0.35) & (v > 0.2)
     if not chroma.any():
@@ -193,13 +219,15 @@ def report(img):
     hue = np.where(mx == r, ((g - b) / d) % 6, np.where(mx == g, (b - r) / d + 2, (r - g) / d + 4)) * 60
     sat = (mx - mn) / np.maximum(mx, 1e-6)
     chroma = (sat > 0.35) & (mx > 0.2)
-    on_pal = ((hue >= 10) & (hue <= 40))[chroma].mean() if chroma.any() else 0
+    lo, hi = (HUE_BAND[0] - 4, HUE_BAND[1] + 2) if HUE_BAND else (10, 40)
+    on_pal = ((hue >= lo) & (hue <= hi))[chroma].mean() if chroma.any() else 0
     lum = (rgb[opaque] @ LUMA)
     print(f"canvas            {W}x{H}")
     print(f"subject box       {(xs.max()-xs.min())/W:.0%} wide x {(ys.max()-ys.min())/H:.0%} tall "
           f"(refs: 85-93% of the limiting side)")
     print(f"opaque coverage   {opaque.mean():.0%} of canvas")
-    print(f"median hue        {np.median(hue[chroma]):.0f} deg (refs 24-28)")
+    want = f"(refs {TARGET_HUE - 2:.0f}-{TARGET_HUE + 2:.0f})" if TARGET_HUE is not None else "(neutral brand: no hue)"
+    print(f"median hue        {np.median(hue[chroma]) if chroma.any() else 0:.0f} deg {want}")
     print(f"on-palette pixels {on_pal:.1%} (want >= 97%)")
     print(f"median luminance  {np.median(lum):.0f} (refs 120-140; below = too dark, above = washed out)")
     print(f"semi-transparent  {((a > 10) & (a < 245)).mean():.1%} (refs <= 3%; much higher = halo/haze left)")
@@ -219,7 +247,11 @@ def main():
                    help="shift luminance so the median matches the references")
     p.add_argument("--png", action="store_true", help="also write a PNG next to the output")
     p.add_argument("--mirror", action="store_true", help="flip horizontally (mode B subjects must face right)")
+    p.add_argument("--brand", metavar="FOLDER",
+                   help="a library folder drawn in its own brand: lock onto its ramp (style/brand-ramp.json)")
     args = p.parse_args()
+    if args.brand:
+        print(f"brand             {load_brand(args.brand) or 'house orange (no brand-ramp.json there)'}")
 
     if args.canvas in CANVASES:
         canvas = CANVASES[args.canvas]

@@ -157,7 +157,11 @@ to the GitHub release with the installer and its `.sig`.
   (no pictures)  since Nov 28 2026 no picture library ships: on a PC without the GPT asset tool the engine makes an
                  empty <workspace>\assets\generated and the Library screen fills it (engine/bluxtech_engine/library.py:
                  uploads are cut out, placed there and indexed with asset_lib.py); the skill reads the library through
-                 GPT_ASSETS_PROJECT and CAMEL_GPT_LIBRARY, which the engine sets for every child process
+                 GPT_ASSETS_PROJECT and CAMEL_GPT_LIBRARY, which the engine sets for every child process. The same
+                 folder carries brand.json (Settings → Brand, engine/bluxtech_engine/brand.py): the skill's
+                 brand_guide.py renders AGENTS.md, style/style-identity-guide.md, re-coloured style/refs and
+                 style/brand-ramp.json (the palette lock) from it, and gpt_assets.py / asset_lib.py read those; the
+                 settings keep a copy so a re-created folder gets its brand back at the next start
   ui\            the built UI                   supabase.config.json, license_public_key.pem
 ```
 

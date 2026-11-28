@@ -98,10 +98,12 @@ def check():
     else:
         add("claude", "Claude Code CLI (your login)", config.claude_bin(),
             config.claude_bin() or "not found: install Claude Code and run `claude` once, or switch to the API key runner")
-    from . import assetlib
+    from . import assetlib, brand
     n_lib = assetlib.counts(config.GPT_DIR / "library.json")["pictures"] if (config.GPT_DIR / "library.json").exists() else 0
+    drawn = f"; GPT draws in {brand.current()['name']}" if brand.managed() else ""
     add("gpt", "Picture library", config.GPT_DIR.is_dir(),
-        f"{n_lib} picture(s) in {config.GPT_DIR}" if n_lib else f"empty: add pictures in Library ({config.GPT_DIR})", required=False)
+        (f"{n_lib} picture(s) in {config.GPT_DIR}" if n_lib else f"empty: add pictures in Library ({config.GPT_DIR})") + drawn,
+        required=False)
     codex = config.codex_bin()
     add("codex", "GPT drawing tool (the ChatGPT / Codex desktop app)", codex,
         codex or "not installed: new pictures are not drawn, the library is used as it is", required=False)

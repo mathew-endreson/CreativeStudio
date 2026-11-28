@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""gpt-assets (bluxstudio-skill edition): make orange illustrations with the ChatGPT / Codex
-desktop app and file them, with their keywords, in the asset library.
+"""gpt-assets (bluxstudio-skill edition): make house-style illustrations (orange, or the colours of the
+library folder's brand.json, see brand_guide.py) with the ChatGPT / Codex desktop app and file them, with
+their keywords, in the asset library.
 
 The Codex desktop app ships a `codex` command-line program that is signed in
 with the user's ChatGPT account and has a built-in `image_gen` tool (no API
@@ -246,6 +247,11 @@ def ensure_gpt_project(project: Path) -> None:
     agents = project / "AGENTS.md"
     if not agents.exists():
         agents.write_text(AGENTS_MD, encoding="utf-8")
+    if (project / "brand.json").is_file():
+        # a library drawn in its own brand (CreativeStudio's Library on a customer PC): AGENTS.md, the guide,
+        # the refs and the palette lock's ramp come from brand.json and are rendered again when it changes
+        import brand_guide
+        brand_guide.apply(project)
 
 
 def build_request(name: str, look: str, prompt: str, variants: int, project: Path, subject: str = ""):
@@ -468,7 +474,11 @@ def status() -> dict:
     info["gpt_project"] = str(project)
     info["gpt_project_exists"] = project.is_dir()
     info["gpt_project_trusted_in_codex"] = str(project).lower() in cfg_text
-    info["style_guide"] = str(find_guide() or "NOT FOUND")
+    import brand_guide
+    info["brand"] = brand_guide.describe(project)
+    own_guide = project / "style" / "style-identity-guide.md"
+    info["style_guide"] = str(own_guide if (project / "brand.json").is_file() and own_guide.is_file()
+                              else find_guide() or "NOT FOUND")
     lib = project / "library.json"
     if lib.is_file():
         try:
@@ -488,7 +498,8 @@ TOOLS = [
     {
         "name": "generate_asset",
         "description": (
-            "Generate one orange illustration with the user's ChatGPT/Codex desktop app (built-in image_gen, "
+            "Generate one house-style illustration (the library folder's brand colours, orange by default) with "
+            "the user's ChatGPT/Codex desktop app (built-in image_gen, "
             "signed in with their ChatGPT account, no API key). GPT also writes its keywords (Algerian Darija, "
             "Arabic, French, English) and the image is filed in the bluxstudio-skill asset library. Takes 1-4 minutes. "
             "Never overwrites: existing names get -2, -3."
@@ -572,7 +583,7 @@ class Server:
                 "protocolVersion": params.get("protocolVersion") or "2025-06-18",
                 "capabilities": {"tools": {"listChanged": False}},
                 "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION},
-                "instructions": "Generates orange-style illustrations (with keywords) through the user's "
+                "instructions": "Generates house-style illustrations (with keywords) through the user's "
                                 "ChatGPT/Codex desktop app and files them in the bluxstudio-skill asset library.",
             })
         elif method == "ping":

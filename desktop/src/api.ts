@@ -374,6 +374,16 @@ export type LibraryAsset = Picture & { subject?: string; look?: string; label?: 
  *  (the app's folder in the workspace, filled from the Library screen). */
 export type Library = { dir: string; updated: string | null; assets: LibraryAsset[]; exists: boolean; studio: boolean; own: boolean; counts: PictureCounts };
 
+/** The brand GPT draws this PC's pictures in (Settings → Brand): kept as brand.json beside the library. */
+export type Brand = { name: string; preset: string; primary: string; accent: string; hue: string; notes: string; updated?: string };
+export type BrandPreset = { id: string; name: string; primary: string; accent: string };
+export type BrandRoles = { deep: string[]; shadow: string[]; shade: string[]; main: string; lit: string[]; gloss: string[]; highlight: string[]; flatdeep: string; dark_end: string; light_end: string };
+export type BrandWords = { hue: string; deep_word: string; dark_word: string; pale_word: string; line_word: string; pale_tint: string; streak: string };
+/** `managed` = the library is the app's own folder, so the brand can be changed here (on the owner's PC the GPT
+ *  asset studio keeps its own style and the brand is read-only). */
+export type BrandInfo = { managed: boolean; dir: string; brand: Brand; house: boolean; presets: BrandPreset[]; roles: BrandRoles; words: BrandWords; applied: boolean; guide: string };
+export type BrandDerived = { brand: Brand; roles: BrandRoles; words: BrandWords; target_hue: number | null; hue_band: [number, number] | null };
+
 async function req<T>(url: string, init?: RequestInit): Promise<T> {
   const r = await fetch(url, init);
   if (!r.ok) {
@@ -452,11 +462,19 @@ export const api = {
   librarySearch: (text: string) => req<{ q: string; output: string }>(`/api/library/search?q=${q(text)}`),
   gptStatus: () => req<Record<string, any>>("/api/library/gpt-status"),
 
+  brand: () => req<BrandInfo>("/api/brand"),
+  /** The palette for colours the user is still picking (nothing saved). */
+  deriveBrand: (primary: string, accent?: string | null) => req<BrandDerived>(`/api/brand/derive?primary=${q(primary)}${accent ? `&accent=${q(accent)}` : ""}`),
+  saveBrand: (b: { name: string; preset: string; primary: string; accent?: string | null; hue?: string | null; notes: string }) => req<BrandInfo>("/api/brand", json("PUT", b)),
+
   jobs: (slug?: string) => req<Job[]>(`/api/jobs${slug ? `?slug=${slug}` : ""}`),
   cancel: (id: number) => req<Job>(`/api/jobs/${id}/cancel`, { method: "POST" }),
 };
 
 export const thumbUrl = (path: string, w = 96) => `/media/thumb?path=${q(path)}&w=${w}`;
+/** A reference picture re-coloured in these colours (the Brand settings' preview). */
+export const brandPreviewUrl = (primary: string, accent: string | null | undefined, look: "flat" | "glossy", size = 360) =>
+  `/media/brand/preview?primary=${q(primary)}${accent ? `&accent=${q(accent)}` : ""}&look=${look}&size=${size}`;
 /** A picture of the product's own asset folder (its file name), or, before it has one, a GPT studio picture (its id). */
 export const pictureUrl = (slug: string, pics: Pick<ProductPictures, "own_library">, p: Pick<Picture, "id" | "file">) =>
   pics.own_library ? `/media/${slug}/img/${q(basename(p.file))}` : `/media/library/${q(p.id)}`;

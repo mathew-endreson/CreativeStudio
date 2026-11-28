@@ -733,30 +733,36 @@ def layout(w0: float, h0: float, side: str = "C", bottom: int = BOTTOM["fresh"],
 # ------------------------------------------------------------------ planning
 
 def concept_prompt(c: dict) -> str:
-    """The GPT prompt for a concept ('' when it has no subject: then only an uploaded picture can show it)."""
+    """The GPT prompt for a concept ('' when it has no subject: then only an uploaded picture can show it), in the
+    colours of the library folder's brand (brand_guide.palette: the house orange, word for word, without a
+    brand.json there)."""
     if c.get("prompt"):
         return c["prompt"]
     if not c.get("subject"):
         return ""
+    import brand_guide
+    P = brand_guide.palette(project_dir())
+    hue = P["hue"]
     if c["look"] == "glossy":
-        return ("Semi-realistic 3D medical illustration of {s}, straight front view, centered, a single isolated "
-                "object. Entirely monochrome vivid orange (#FB7201): a glossy, translucent orange gel / gummy-candy "
-                "surface with a soft inner glow, {i} visible inside the surface in darker burnt orange (#CB4602), "
-                "small cream-white specular highlight streaks along the upper rims, deeper orange toward the bottom "
-                "edges. {t}No outline strokes. Isolated on a transparent background, no shadow, no text, no labels, "
-                "no other colors.").format(s=c["subject"], i=c.get("inner", "soft inner structure"),
-                                           t=(c["tube"].strip() + " ") if c.get("tube") else "")
+        return (f"Semi-realistic 3D medical illustration of {c['subject']}, straight front view, centered, a single "
+                f"isolated object. Entirely monochrome vivid {hue} ({P['main']}): a glossy, translucent {hue} gel / "
+                f"gummy-candy surface with a soft inner glow, {c.get('inner', 'soft inner structure')} visible inside "
+                f"the surface in darker {P['deep_word']} ({P['inner']}), small {P['pale_word']} specular highlight "
+                f"streaks along the upper rims, deeper {hue} toward the bottom edges. "
+                f"{(c['tube'].strip() + ' ') if c.get('tube') else ''}No outline strokes. Isolated on a transparent "
+                "background, no shadow, no text, no labels, no other colors.")
     if c.get("cutaway"):
-        detail = (f"A cut-away cross-section shows {c['cutaway']} as recessed, debossed channels in dark burnt "
-                  "orange (#A83301) with a soft inner shadow, like shapes pressed into clay.")
+        detail = (f"A cut-away cross-section shows {c['cutaway']} as recessed, debossed channels in dark "
+                  f"{P['deep_word']} ({P['recess']}) with a soft inner shadow, like shapes pressed into clay.")
     else:
-        detail = f"A few thin tapered dark brown (#632302) strokes mark the {c.get('marks', 'ear, the closed eye and the neck line')}."
+        detail = (f"A few thin tapered {P['line_word']} ({P['line']}) strokes mark the "
+                  f"{c.get('marks', 'ear, the closed eye and the neck line')}.")
     action = (c["action"].strip() + " ") if c.get("action") else ""
-    return ("Minimal flat health icon illustration: side-profile silhouette of {s}, facing right, cropped at the "
-            "{crop}. One solid vivid orange (#FB7201) shape with a soft gradient from lighter orange at the top to "
-            "deeper orange (#E85A01) at the bottom left, smooth matte finish, no outline. {d} {a}Overlapping parts "
-            "are separated by a thin gap of empty background. Isolated on a transparent background, no shadow, no "
-            "text, no other colors.").format(s=c["subject"], crop=c.get("crop", "chest"), d=detail, a=action)
+    return (f"Minimal flat health icon illustration: side-profile silhouette of {c['subject']}, facing right, cropped "
+            f"at the {c.get('crop', 'chest')}. One solid vivid {hue} ({P['main']}) shape with a soft gradient from "
+            f"lighter {hue} at the top to deeper {hue} ({P['flatdeep']}) at the bottom left, smooth matte finish, no "
+            f"outline. {detail} {action}Overlapping parts are separated by a thin gap of empty background. Isolated "
+            "on a transparent background, no shadow, no text, no other colors.")
 
 
 def _parse_busy(specs) -> list:
@@ -990,8 +996,8 @@ class AssetError(Exception):
 
 
 def prep_image(src: Path, dst: Path, mirror: bool = False, palette: bool = False) -> tuple:
-    """Trim to the subject, <= 900 px, flip if asked. palette = lock GPT's orange illustrations onto the house ramp
-    (finish_asset); the user's own pictures keep their colours. Returns (w, h)."""
+    """Trim to the subject, <= 900 px, flip if asked. palette = lock GPT's illustrations onto the house ramp, or
+    the ramp of the library folder's brand (finish_asset); the user's own pictures keep their colours. Returns (w, h)."""
     import numpy as np
     from PIL import Image
 
@@ -1009,6 +1015,7 @@ def prep_image(src: Path, dst: Path, mirror: bool = False, palette: bool = False
         raise AssetError("the picture is fully transparent")
     if palette:
         import finish_asset
+        finish_asset.load_brand(project_dir())          # a brand's ramp when the GPT folder is drawn in one
         arr = np.asarray(im).astype(np.float32)
         rgb, alpha = arr[..., :3], arr[..., 3] / 255.0
         alpha = np.where(alpha >= 0.97, 1.0, np.where(alpha <= 0.02, 0.0, alpha))

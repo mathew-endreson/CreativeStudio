@@ -85,7 +85,7 @@ def main():
     check("boot sets the cookie and redirects", s == 303 and "bx_session=" in h.get("Set-Cookie", ""), f"{s} {h.get('Set-Cookie', '')[:40]}")
     s, b, _ = call(base, "/boot/wrong")
     check("wrong boot token -> 403", s == 403, s)
-    for path in ("/api/products", "/api/environment", "/api/settings", "/api/license", "/api/fresh", "/api/library", "/api/jobs"):
+    for path in ("/api/products", "/api/environment", "/api/settings", "/api/license", "/api/fresh", "/api/library", "/api/brand", "/api/jobs"):
         s, b, _ = call(base, path, token)
         check(f"GET {path}", s == 200, f"{s} {str(b)[:80]}")
     s, b, _ = call(base, "/api/environment", token)

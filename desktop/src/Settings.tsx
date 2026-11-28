@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { api, errText, type AppInfo, type EnvCheck, type Library, type Settings as SettingsT } from "./api";
 import { authError, deactivate, signOut } from "./auth";
+import BrandEditor from "./BrandSettings";
 import { PRODUCT_NAME } from "./brand";
 import { useDevMode } from "./devmode";
 import Setup from "./Setup";
@@ -189,6 +190,11 @@ export default function Settings({ info, reloadApp, update }: { info: AppInfo; r
           <Row label="Drawings per run" hint="The most new pictures one run may ask for, and only when you tick “Draw missing pictures” on the build. Each drawing spends your ChatGPT image allowance.">
             <input type="number" min={0} max={10} className={cx(input, "num w-[100px]")} defaultValue={s.gpt_cap} onBlur={(e) => save({ gpt_cap: Number(e.target.value) }, "drawings per run")} aria-label="Drawings per run" />
           </Row>
+        </Section>
+
+        {/* 2b. Brand: the colours GPT draws in */}
+        <Section title="Brand" sub="The colours GPT draws new pictures in, for this PC's library. Pick a preset or your own colours: the drawing rules, the reference pictures and the colour lock follow, and the choice stays on this PC with the library.">
+          <BrandEditor />
         </Section>
 
         {/* 3. Production */}

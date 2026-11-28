@@ -181,3 +181,14 @@ class AddPictures(BaseModel):
     asset_bottom: Optional[int] = Field(None, ge=600, le=1800)
     clear_asset_bottom: bool = False
     reindex: bool = Field(False, description="index the folder again (pictures dropped into it by hand)")
+
+
+class Brand(BaseModel):
+    """Settings → Brand: the colours GPT draws this PC's pictures in (brand.json in the library folder)."""
+    model_config = ConfigDict(extra="forbid")
+    name: str = Field("", max_length=60)
+    preset: str = Field("custom", max_length=24)
+    primary: str = Field(pattern=r"^#[0-9a-fA-F]{6}$", description="the main body colour")
+    accent: Optional[str] = Field(None, pattern=r"^#[0-9a-fA-F]{6}$", description="line work and deepest hollows; derived when empty")
+    hue: Optional[str] = Field(None, max_length=20, description="the colour word of the prompts; derived from the primary when empty")
+    notes: str = Field("", max_length=1500, description="what GPT must keep on every image, in the user's words")

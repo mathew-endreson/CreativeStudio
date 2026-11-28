@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
-import { api, basename, errText, thumbUrl, type Library as LibraryT, type LibraryAsset, type NewPicture, type PictureTag } from "./api";
+import { api, basename, errText, thumbUrl, type BrandInfo, type Library as LibraryT, type LibraryAsset, type NewPicture, type PictureTag } from "./api";
+import { BrandDot } from "./BrandSettings";
 import { Icon } from "./icons";
 import { ActiveJobs, isActive, useJobs, useOnJobEnd } from "./Jobs";
 import { inTauri, pickPictures } from "./tauri";
@@ -76,6 +77,7 @@ function AssetCard({ a, onRemove }: { a: LibraryAsset; onRemove: (id: string) =>
  *  when it needs it, indexed, and given its keywords by Claude on the next edit. */
 export default function Library() {
   const [lib, setLib] = useState<LibraryT | null>(null);
+  const [brand, setBrand] = useState<BrandInfo | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [found, setFound] = useState<string | null>(null);
@@ -89,6 +91,7 @@ export default function Library() {
   const load = useCallback(() => api.library().then(setLib).catch((e) => setErr(errText(e))), []);
   useEffect(() => {
     load();
+    api.brand().then(setBrand).catch(() => {});
   }, [load]);
   useOnJobEnd(jobs, load);
 
@@ -132,7 +135,30 @@ export default function Library() {
 
   return (
     <div>
-      <Toolbar title="Library" sub={lib ? (n?.pictures ? `${n.pictures} picture${n.pictures === 1 ? "" : "s"}${n.untagged ? ` · ${n.untagged} without keywords yet` : ""} · every ad may use them` : "No pictures yet · every ad may use what you add here") : "…"}>
+      <Toolbar
+        title="Library"
+        sub={
+          <>
+            {lib ? (n?.pictures ? `${n.pictures} picture${n.pictures === 1 ? "" : "s"}${n.untagged ? ` · ${n.untagged} without keywords yet` : ""} · every ad may use them` : "No pictures yet · every ad may use what you add here") : "…"}
+            {brand && (
+              <>
+                {" · GPT draws in "}
+                <BrandDot primary={brand.brand.primary} accent={brand.brand.accent} size={10} className="mr-1 align-[-1px]" />
+                {brand.brand.name}
+                {brand.managed && (
+                  <>
+                    {" ("}
+                    <a href="#/settings" className="underline hover:text-ink">
+                      change
+                    </a>
+                    {")"}
+                  </>
+                )}
+              </>
+            )}
+          </>
+        }
+      >
         <Search value={filter} onChange={setFilter} placeholder="Filter pictures" />
         {lib?.studio && <Button onClick={() => api.gptStatus().then(setStatus).catch((e) => setErr(errText(e)))}>Drawing status</Button>}
         {inTauri() && (

@@ -16,10 +16,10 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import Body, FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import claude_runner, config, darija, environment, fresh, library as piclib, license, products, schemas, schemas_more as SM, security, settings, stages, store
+from . import brand, claude_runner, config, darija, environment, fresh, library as piclib, license, products, schemas, schemas_more as SM, security, settings, stages, store
 from .jobs import ACTIVE, Jobs, run_cmd
 
 jobs = Jobs()
@@ -35,6 +35,7 @@ jobs.register("fresh_cutout", fresh.cutout_job)
 
 @asynccontextmanager
 async def lifespan(_app):
+    brand.restore()                      # the library folder's brand files, from the settings if the folder is new
     jobs.start()
     yield
     jobs.shutdown()
@@ -649,6 +650,34 @@ def gpt_status():
         return {"raw": "gpt_assets.py status timed out", "exit": -1}
 
 
+# ------------------------------------------------------------------ brand: the colours GPT draws this PC's pictures in
+
+@app.get("/api/brand")
+def get_brand():
+    return brand.info()
+
+
+@app.get("/api/brand/derive")
+def derive_brand(primary: str, accent: str = ""):
+    """The palette for colours the user is still picking (nothing is saved)."""
+    try:
+        return brand.derive(primary, accent or None)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+
+
+@app.put("/api/brand")
+def put_brand(body: SM.Brand):
+    """Save the brand (brand.json in the library folder, remembered in the settings) and render what keeps GPT on
+    style from it: AGENTS.md, the style guide, the reference pictures and the palette lock's ramp."""
+    try:
+        return brand.save(body.model_dump())
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    except PermissionError as e:
+        raise HTTPException(409, str(e))
+
+
 # ------------------------------------------------------------------ jobs
 
 @app.get("/api/jobs")
@@ -823,6 +852,16 @@ def media_library(aid: str):
     if not p.exists():
         raise HTTPException(404, "picture file missing")
     return picture(p)
+
+
+@app.get("/media/brand/preview")
+def media_brand_preview(primary: str, accent: str = "", look: str = "flat", size: int = 360):
+    """A reference picture in the given colours (what the Brand settings show while the user picks)."""
+    try:
+        data = brand.preview_png(primary.strip().upper(), accent.strip().upper(), look if look in ("flat", "glossy") else "flat", size)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    return Response(content=data, media_type="image/png", headers={"Cache-Control": "max-age=3600"})
 
 
 @app.get("/media/thumb")
